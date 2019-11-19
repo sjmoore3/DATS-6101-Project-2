@@ -1,0 +1,142 @@
+---
+title: "Draft for the Project"
+output: html_notebook
+---
+
+```{r basicfcn}
+loadPkg = function(x) { if (!require(x,character.only=T, quietly =T)) { install.packages(x,dep=T,repos="http://cran.us.r-project.org"); if(!require(x,character.only=T)) stop("Package not found") } }
+```
+
+
+```{r setting_wd}
+setwd('C:/Users/andre/Desktop/GW Classes/Introduction to Data Science')
+```
+
+```{r init}
+loadPkg('readxl')
+gdp <- read_excel("GDP_Super_Cool.xlsm")
+athlete_events <- data.frame(read.csv("athlete_events.csv"))
+```
+
+```{r cleaing_data}
+# keeping NAs for analysis of winners and losers
+summer_w_NAs = athlete_events[athlete_events$Season=='Summer',]
+
+# differenciate between winners and losers
+# THIS IS VERY IMPORTANT PART OF THE CODE
+summer_w_NAs <- subset(athlete_events, Season == 'Summer')
+summer_w_NAs$Medal <- as.character(summer_w_NAs$Medal)
+summer_w_NAs$Medal[is.na(summer_w_NAs$Medal)] <- "Loser"
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Bronze'] <- 'Winner'
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Silver'] <- 'Winner'
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Gold'] <- 'Winner'
+```
+
+```{r columns_names}
+#changing names of the columns 
+colnames(summer_w_NAs)[7] = c('Country')
+```
+
+```{r datasets}
+#merging datasets 
+data2 = merge(summer_w_NAs, gdp, by=c("Country", "Year"))
+str(data2)
+```
+
+```{r cleaning_data}
+#scaing GDP, converting Medal to factor, and removing NAs
+data2$GDP <- scale(data2$GDP)
+data2$Medal <- as.factor(data2$Medal)
+sum(is.na(data2$GDP))
+data2_nona <- data2[!is.na(data2$GDP), ]
+```
+
+```{r graph}
+nrow(data2_nona)
+```
+
+```{r graph}
+plot(GDP ~ Medal, data = data2_nona, main = "GDP for Losers and Winnersm", xlab = "Loser/Winner", ylab = "GDP", col = c("darkblue", "antiquewhite"))
+```
+
+```{r Q4a}
+GDP_aov <- aov(GDP ~ Medal, data = data2_nona)
+names(GDP_aov)
+summary(GDP_aov)
+```
+
+The null hypothesis of this test is the following: the people who won a medal and people who did not win a medal have the same mean for GDP. 
+
+From the ANOVA test we got a really tiny p-value which is way smaller than our confidence level 0.05 and therefore we reject the null hypothesis and conclude that GDP has an effect on whether an athlete earns a medal. As we can see visually from the boxplot, athletes who won a medal tend to come from countries with higher GDP.  
+
+
+```{r logistic regression}
+GDPLogit <- glm(Medal ~ GDP, data = data2_nona, family = "binomial")
+summary(GDPLogit)
+```
+
+To evaluate whether our model is good, we are going to perform the following tests: 
+
+* Receiver-Operator-Characteristic curve and Area-Under-Curve:
+```{r ROC, include = TRUE, echo= FALSE}
+loadPkg("pROC")
+prob = predict(GDPLogit, type = c("response"))
+data2_nona$prob=prob
+g <- roc(Medal~prob, data= data2_nona)
+auc(g)
+plot(g)
+#roc_obj <- roc(data2$Medal, data2$GDP)
+##auc(roc_obj)
+#plot(roc_obj)
+```
+
+The area-under-curve for this model is `r auc(h)`, which is less than 0.8. Althought `r auc(h)` is not much smaller than 0.8, this means that this model is not a good fit.
+
+* McFadden:
+
+```{r Q7b}
+loadPkg("pscl")
+GDPLogitpr2 = pR2(GDPLogit)
+GDPLogitpr2
+```
+
+With the McFadden value of `r surviveLogitpr2['McFadden']` only about 3% of the variations in y is explained by the explanatory variables in the model, which is not good.
+
+```{r graph1}
+plot(GDP ~ Sex, data = data2_nona, main = "GDP for Men and Women", xlab = "Men/Women", ylab = "GDP", col = c("deeppink1", "dodgerblue1"))
+```
+
+```{r aov1}
+GDP_Sex_aov <- aov(GDP ~ Sex, data = data2_nona)
+names(GDP_Sex_aov)
+summary(GDP_Sex_aov)
+```
+
+The null hypothesis of this test is the following: the female athletes and male athletes have the same mean for GDP. 
+
+From the ANOVA test we got a really tiny p-value which is way smaller than our confidence level 0.05 and therefore we reject the null hypothesis and conclude that GDP has an effect on whether female athletes partecipate to the olympics. As we can see visually from the boxplot, female athletes tend to partecipate more often if they come from a country with a higher GDP. 
+
+```{r aov1}
+GDP_Sex_aov <- aov(GDP ~ Sex, data = data2_nona)
+names(GDP_Sex_aov)
+summary(GDP_Sex_aov)
+```
+
+```{r creating_new_df}
+subvars <- c('Country', 'Year', 'GDP')
+data3 <- data2_nona[subvars]
+data3$Year <- as.factor(data3$Year)
+data3[ , "NAthlete"] <- 1
+summary(data3)
+str(data3)
+```
+
+```{r installing_scatterplot3d}
+install.packages("scatterplot3d")
+```
+
+```{r graphing_data3}
+loadPkg("scatterplot3d")
+scatterplot3d(x)
+```
+
