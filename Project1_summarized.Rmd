@@ -282,6 +282,108 @@ tukey_f_weight
 tukey_m_weight <- TukeyHSD(aov_m_height)
 tukey_m_weight
 ```
+#### 4.	SMART 2 - 
+### Can we draw any correlations between gender distribution and wins? 
+
+```{r numberofMedalsbyGender, echo= FALSE, include=FALSE}
+# Subquestion 1: How many female athletes won medals?
+female_won_medals <- subset(summer_events, Sex == 'F')
+#nrow(female_won_medals) # 8665 medals won by female athletes
+
+female_gold <- subset(female_won_medals, Medal == "Gold")
+total_f_g <- nrow(female_gold) # female athletes won total of 2875 gold medals.
+
+female_silver <- subset(female_won_medals, Medal == "Silver")
+total_f_s <- nrow(female_silver) # female athletes won total of 2870 silver medals.
+
+female_bronze <- subset(female_won_medals, Medal == "Bronze")
+total_f_b <- nrow(female_bronze) # female athletes won total of 2920 bronze medals.
+
+#creating a new variable for total of gold, solver and bronze medals won by female
+Total_Medals_Female <- c (total_f_g, total_f_s, total_f_b)
+
+# -----------------------------------------------------
+
+# Subquestion 2: How many male athletes won medals?
+male_won_medals <- subset(summer_events, Sex == 'M')
+#nrow(male_won_medals) # 16676 medals won by male athletes 
+
+male_gold <- subset(male_won_medals, Medal == "Gold")
+total_m_g <- nrow(male_gold) # male athletes won total of 5667 gold medals.
+
+male_silver <- subset(male_won_medals, Medal == "Silver")
+total_m_s <-nrow(male_silver) # male athletes won total of 5363 silver medals.
+
+male_bronze <- subset(male_won_medals, Medal == "Bronze")
+total_m_b <- nrow(male_bronze) # male athletes won total of 5646 bronze medals.
+
+#creating a new variable for total of gold, solver and bronze medals won by male
+Total_Medals_Male <- c (total_m_g, total_m_s, total_m_b)
+
+```
+
+Female athletes won total of `r total_f_g` gold medals, `r total_f_s` silver medals, and `r total_f_b` bronze medals. The total of all medals was `r nrow(female_won_medals)`
+
+Male athletes won total of `r total_m_g` gold medals, `r total_m_s` silver medals, and `r total_m_b` bronze medals. The total of all medals was `r nrow(male_won_medals)`
+
+```{r Pie_Chart}
+#Pie Chart of distribution of medals won by Female 
+
+labels <-  c("Gold","Silver","Bronze")
+piepercent_f <- paste(round(100*Total_Medals_Female/sum(Total_Medals_Female), 1), "%", sep = "")
+
+# Plot the chart.
+pie(Total_Medals_Female, labels = piepercent_f, main = "Distribution of all medals won by Female athletes",col = rainbow(length(Total_Medals_Female)))
+legend("topright", c("Gold","Silver","Bronze"), cex = 0.8,
+   fill = rainbow(length(Total_Medals_Female)))
+
+#Pie Chart of distribution of medals won by Male 
+
+labels <-  c("Gold","Silver","Bronze")
+piepercent_m<- paste(round(100*Total_Medals_Male/sum(Total_Medals_Male), 1), "%", sep = "")
+
+# Plot the chart.
+pie(Total_Medals_Male, labels = piepercent_m, main = "Distribution of all medals won by Male athletes",col = rainbow(length(Total_Medals_Male)))
+legend("topright", c("Gold","Silver","Bronze"), cex = 0.8,
+   fill = rainbow(length(Total_Medals_Male)))
+
+```
+
+```{r}
+# Subquestion 3: Who (female or male) won more (gold, silver, bronze)?
+
+Medals <- c("Gold", "Silver", "Bronze")
+Female_Percentage <- c(piepercent_f)
+Male_Percentage <- c(piepercent_m)
+f_m_data <- data.frame(Medals, Female_Percentage, Male_Percentage)
+f_m_data
+
+```
+
+### Can we draw correlations between popularity of a sport and the diversity of it? 
+```{r popularSport}
+
+popular_sport_total <- count(summer_events, "Sport")
+Sum <- sort(popular_sport_total$freq, decreasing = TRUE)
+
+#sport_sum <- data.frame(popular_sport_total, Sum)
+
+#sum_sport1 <- sport_sum %>% select(1, 3)  
+#sum_sport1 #popular sports
+#head(sum_sport, n=10)
+#nrow(sum_sport)    #42
+
+#cor(x, y, method = c("pearson", "kendall", "spearman"))
+#cor.test(x, y, method=c("pearson", "kendall", "spearman"))
+```
+
+### Sport popularity over time (separate M/F)? 
+a.	4.1+
+b.	4.2
+c.	4.3
+```{r}
+
+```
 
 
 
