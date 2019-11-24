@@ -13,7 +13,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r Read}
+```{r Read, echo=FALSE, include=FALSE}
 athlete_events = read.csv("athlete_events.csv")
 str(athlete_events)
 ```
@@ -155,16 +155,68 @@ for(i in 1:8){
 
   plot_list1[[i]] <- d
   #print(plot_list1[[i]])
+  
 }
 
 ```
+
+
 ```{r AOV for SMART1, echo=FALSE, include=TRUE}
 for(i in 1:8){
   
 print(summary(aov_list[[i]]))
 print(TukeyHSD(aov_list[[i]]))
 
+if (i == 1){
+  print("Italy")
+  print("Results from the ANOVA test indicate high and slightly positive correlation between 1960 (host) and 1956 (Year before host), as well as a high and slightly positive correlation between 1960 and 1964 (Year after host). This suggests that the means of the before, host and after years are similar and slightly increasing over time. We can conclude that host year does slightly effect medals won and year after given the lower correlations between host year and 1952/1968. ")
+  print("")
 }
+else if (i == 2 ){
+  print("Japan")
+  print("Results from the ANOVA test indicate high and slightly positive correlation between 1964 (host) and 1960 (Year before host), as well as a low and slightly positive correlation between 1964 and 1968 (Year after host). This suggest that the means of before and host years are similar and slightly increasing over time, while the means of host and after are dramaticall different and increasing over time. We can conclude that host year does slightly effect medals won and significantly effects the medals won in the year after host")
+  print("")
+}
+else if (i == 3 ){
+  print("Mexico")
+  print("Results from the ANOVA test indicate high and slightly positive correlation between 1968 (host) and 1964 (Year before host), as well as moderate, but slightly negative correlation between 1968 and 1972 (Year after host). This suggest that the means of before and host years are similar and slightly increasing over time, while the means of host and after are dramaticall different and decreasing over time. We can conclude that host year does slightly effect medals won and significantly (but negatively) effects  the medals won in the year after host. This is an anomoly in our data.")
+  print("")
+}
+else if (i == 4 ){
+  print("Spain")
+  print("Results from the ANOVA test indicate an extremely low and slightly positive correlation between 1992 (host) and 1988 (Year before host), as well as moderate and slightly positive correlation between 1992 and 1996 (Year after host). This suggest that the means of before and host years are drastically different and increasing over time, while the means of host and after are more similar and increasing over time. We can conclude that host year does extremely effect medals won  and significantly effects  the medals won in the year after host as well.")
+  print("")
+}
+else if (i == 5 ){
+  print("United States")
+  print("Results from the ANOVA test indicate an extremely high and slightly positive correlation between 1996 (host) and 1992 (Year before host), as well as high and slightly positive correlation between 1992 and 1996 (Year after host). This suggest that the means of before and host years are significantly similar and increasing over time, as well as the means of host and after years. We can conclude that host year does slightly effect medals won  and also slightly effects the medals won in the year after host.")
+  print("")
+}
+else if (i == 6 ){
+    print("Australia")
+  print("Results from the ANOVA test indicate an extremely high and slightly negative correlation between 2000 (host) and 1996 (Year before host), as well as high and slightly positive correlation between 2000 and 2004 (Year after host). This suggest that the means of before and host years are significantly similar and decreasing over time, while the means of the host and after years are significantly similar, but increasing over time. We can conclude that host year does not effect medals won and the host year also does not effect the medals won in the year after host.This is an anomoly in our data.")
+  print("")
+}
+else if (i == 7 ){
+    print("Greece")
+  print("Results from the ANOVA test indicate an moderate and slightly negative correlation between 2004 (host) and 2000 (Year before host), as well as high and slightly negative correlation between 2004 and 2008 (Year after host). This suggest that the means of before and host years are significantly different and decreasing over time, as well as the means of host and after years (although these means are more similar). We can conclude that host year does not effect medals won and the host year also does not effect the medals won in the year after host. Although one could make an argument that knowing they had a host year coming up Greece was galvanized and therefore won more medals in the year before.")
+  print("")
+}
+else if (i == 8 ){
+      print("China")
+  print("Results from the ANOVA test indicate an low and slightly positive correlation between 2008 (host) and 2004 (Year before host), as well as high and slightly positive correlation between 2008 and 2012 (Year after host). This suggest that the means of before and host years are significantly different and increasing over time and the means of host and after years are significantly similar and increasing over time. We can conclude that host year does significantly effect medals won and the host year slighlty effects the medals won in the year after host. China also shows that their medal winning streak continues for at least two years after their host. Hosting may have galvanized the people or government into a higher Olympic participation.")
+  print("")
+}
+
+
+
+
+}
+
+
+
+
+
 ```
 
 ```{r Plots for SMART1, echo=FALSE, include=TRUE}
