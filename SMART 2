@@ -69,3 +69,4 @@ piepercent_f <- paste(round(100*Total_Medals_Female/sum(Total_Medals_Female), 1)
 pie(Total_Medals_Female, labels = piepercent_f, main = "Distribution of all medals won by Female athletes",col = rainbow(length(Total_Medals_Female)))
 legend("topright", c("Gold","Silver","Bronze"), cex = 0.8,
    fill = rainbow(length(Total_Medals_Female)))
+   ```
