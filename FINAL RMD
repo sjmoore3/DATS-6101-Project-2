@@ -302,7 +302,6 @@ loadPkg = function(x) { if (!require(x,character.only=T, quietly =T)) { install.
 ```
 
 ```{r read, echo=FALSE, include = TRUE}
-setwd('/Users/carolinesklaver/Desktop/Intro_DS/Project 1')
 athlete_events = read.csv("athlete_events.csv")
 str(athlete_events)
 ```
