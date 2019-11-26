@@ -1228,7 +1228,7 @@ With the McFadden value of `r format(GDPLogit['McFadden'], 4)` only 2% of the va
 
 ```{r logistic_regression2}
 #running logistic regression with more variables to see whether it improves the model
-GDPLogit1 <- glm(Medal ~ GDP+Height+Weight+ Age, data = Summer_GDP_nona, family = "binomial")
+GDPLogit1 <- glm(Medal ~ GDP+Weight+ Age + Sex, data = Summer_GDP_nona, family = "binomial")
 summary(GDPLogit1)
 ```
 
@@ -1352,8 +1352,7 @@ oly.trainLabels1 <- Summer_GDP_nona[oly_sample1==1, 15]
 oly.testLabels1 <- Summer_GDP_nona[oly_sample1==2, 15]
 ```
 
-```{r K3}
-#So now we will deploy our model 
+```{r K3} 
 oly_pred1 <- knn(train = oly_training1, test = oly_test1, cl=oly.trainLabels1, k=3)
 oly_pred1
 ```
@@ -1361,31 +1360,24 @@ oly_pred1
 ```{r K3_crosstable, include= TRUE, echo = False}
 loadPkg("gmodels")
 OLYPREDCross1 <- CrossTable(oly.testLabels1, oly_pred1, prop.chisq = FALSE)
-#Looks like we got all but three correct, not bad
 ```
 
-```{r K5}
-#So now we will deploy our model 
+```{r K5} 
 oly_pred2 <- knn(train = oly_training1, test = oly_test1, cl=oly.trainLabels1, k=5)
 oly_pred2
 ```
 
 ```{r K5_crosstable}
-#install.packages("gmodels")
-loadPkg("gmodels")
 OLYPREDCross2 <- CrossTable(oly.testLabels1, oly_pred2, prop.chisq = FALSE)
-#Looks like we got all but three correct, not bad
 ```
 
-```{r K7}
-#So now we will deploy our model 
+```{r K7} 
 oly_pred3 <- knn(train = oly_training1, test = oly_test1, cl=oly.trainLabels1, k=7)
 oly_pred3
 ```
 
 ```{r K7_crosstable}
 OLYPREDCross3 <- CrossTable(oly.testLabels1, oly_pred3, prop.chisq = FALSE)
-#Looks like we got all but three correct, not bad
 ```
 
 ```{r acc1}
