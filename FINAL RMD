@@ -1,4 +1,80 @@
 #INTRO - SUMMARY OF LAST PROJECT
+```{r NAs, echo=FALSE}
+athlete_events = read.csv("athlete_events.csv")
+str(athlete_events)
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r NAs, echo=FALSE}
+# omitting NAs leaves only athletes that won medals
+summer_events = na.omit(athlete_events[athlete_events$Season == 'Summer',])
+# keeping NAs for analysis of winners and losers
+summer_w_NAs = athlete_events[athlete_events$Season=='Summer',]
+```
+
+```{r , echo=FALSE, include=TRUE}
+# participants over time
+athlete_events_MPC = summer_w_NAs %>% group_by(Year) %>% summarise(count = n_distinct(Team))
+ggplot(data=athlete_events_MPC, aes(x=Year, y=count)) +
+  geom_line()+
+  geom_point() + ggtitle('Number of Olympic athletes over time') + ylab('Number of participants')
+```
+
+```{r , echo=FALSE, include=TRUE}
+# plot male female participants over time
+group_count_mf <- summer_w_NAs %>% group_by(Year, Sex) %>%
+  summarize(Athletes = length(unique(ID)))
+group_count_mf$Year <- as.integer(group_count_mf$Year)
+ggplot(group_count_mf, aes(x=Year, y=Athletes, group=Sex, color=Sex)) +
+  geom_point(size=2) +
+  geom_line()  +
+  scale_color_manual(values=c("deeppink1","dodgerblue1")) +
+  labs(title = "Number of male and female Olympic Athletes over time") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r , echo=FALSE, include=TRUE}
+# male and female by sport
+female_w_NAs = summer_w_NAs[summer_w_NAs$Sex == 'F',]
+male_w_NAs = summer_w_NAs[summer_w_NAs$Sex == 'M',]
+female_sport_participation = sort(table(female_w_NAs$Sport), decreasing = TRUE)
+male_sport_participation = sort(table(male_w_NAs$Sport), decreasing = TRUE)
+barplot(female_sport_participation[2:10], las=2, main="Number of Female Athletes by Sport", col = 'deeppink1',
+        ylim = c(0,18000))
+barplot(male_sport_participation[2:10], las=2, main="Number of Male Athletes by Sport", col='dodgerblue1',
+        ylim = c(0,18000))
+```
+
+```{r Read, echo=FALSE, include=FALSE}
+# Medals per country
+medals_table = table(summer_events$Medal,summer_events$NOC)
+mean(medals_table)
+```
+
+```{r Medals by country barplot, echo=FALSE, include=TRUE}
+# stacked barplot of medals won by top countries
+subset_medals = medals_table[,c('USA', 'URS', 'GBR', 'GER', 'ITA', 'FRA', 'AUS',
+                                'CHN','HUN','JPN','NED','RUS','SWE')]
+barplot(subset_medals, main = "Total medals won by country", 
+        ylab = 'Country Code', xlab = "Number of medals won", col = c('gold', 'light gray','gold4'),
+        legend.text = c("Gold",'Silver','Bronze'), horiz = TRUE, las=2)
+```
+
+```{r histograms, echo=FALSE, include=TRUE}
+# Descriptive stats of Age, Height, Weight
+par(mfrow=c(1,3))
+hist(summer_w_NAs$Age, breaks = 30, main = 'Histogram of Age', xlab = 'Age', ylab = 'Frequency', col = 'rosybrown1')
+#hist(f$Age, breaks = 30)
+#hist(m$Age, breaks = 30)
+hist(summer_w_NAs$Height, breaks = 30, main = 'Histogram of Height',xlab = 'Height(cm)', ylab = 'Frequency', col = 'darkseagreen3')
+#hist(f$Height, breaks = 30)
+#hist(m$Height, breaks = 30)
+hist(summer_w_NAs$Weight, breaks = 30, main = 'Histogram of Weight',xlab = 'Weight(kg)', ylab = 'Frequency', col = 'lightblue3')
+#hist(f$Weight, breaks = 30)
+#hist(m$Weight, breaks = 30)
+```
 
 #SMART 1
 
