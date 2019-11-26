@@ -905,7 +905,7 @@ Logitpr2_gym_m = pR2(gym_glm_m)
 Logitpr2_gym_m
 
 library(stargazer)
-stargazer(gym_glm_f, gym_glm_m, out='ahw_gym.htm')
+#stargazer(gym_glm_f, gym_glm_m, out='ahw_gym.htm')
 ```
 
 
@@ -1077,7 +1077,7 @@ Logitpr2_weight_m = pR2(weight_glm_m)
 Logitpr2_weight_m
 
 library(stargazer)
-stargazer(weight_glm.f, weight_glm_m, out='ahw_weight.htm')
+#stargazer(weight_glm.f, weight_glm_m, out='ahw_weight.htm')
 ```
 
 
