@@ -1,4 +1,15 @@
 #INTRO - SUMMARY OF LAST PROJECT
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(include = F)
+knitr::opts_chunk$set(collapse = T, results = 'hide', warning = F, message = F, error = F)
+options(scientific=T, digits = 3)
+options(scipen=999)
+```
+```{r basicfcn}
+loadPkg = function(x) { if (!require(x,character.only=T, quietly =T)) { install.packages(x,dep=T,repos="http://cran.us.r-project.org"); if(!require(x,character.only=T)) stop("Package not found") } }
+```
+
 ```{r NAs, echo=FALSE}
 athlete_events = read.csv("athlete_events.csv")
 str(athlete_events)
@@ -285,9 +296,13 @@ library(ggplot2)
 library(forcats)
 library(plyr)
 library(devtools)
+
+# can add quietly=T option to the require() function
+loadPkg = function(x) { if (!require(x,character.only=T, quietly =T)) { install.packages(x,dep=T,repos="http://cran.us.r-project.org"); if(!require(x,character.only=T)) stop("Package not found") } }
 ```
 
 ```{r read, echo=FALSE, include = TRUE}
+setwd('/Users/carolinesklaver/Desktop/Intro_DS/Project 1')
 athlete_events = read.csv("athlete_events.csv")
 str(athlete_events)
 ```
@@ -295,6 +310,7 @@ str(athlete_events)
 ```{r NAs, echo=FALSE}
 # omitting NAs leaves only athletes that won medals
 summer_events = na.omit(athlete_events[athlete_events$Season == 'Summer',])
+
 # keeping NAs for analysis of winners and losers
 summer_w_NAs = athlete_events[athlete_events$Season=='Summer',]
 ```
@@ -318,6 +334,8 @@ ggplot(summer_w_NAs, aes(x=Weight, y=Height,, color=Sex)) +
   xlab('Weight(kg)')+ ylab("Height(cm)")+ xlim(0,175)+
   scale_color_manual(values=c('deeppink2','royalblue'))
 ```
+
+
 ```{r winner loser, include=FALSE}
 # differenciate between winners and losers
 # THIS IS VERY IMPORTANT PART OF THE CODE
@@ -334,7 +352,9 @@ summer_w_NAs$Medal[summer_w_NAs$Medal == 'Gold'] <- 'aWinner'
 summer_w_NAs$Medal = as.factor(summer_w_NAs$Medal)
 ```
 
+
 ## Is the average Age/Height/Weight different between winners and losers?
+
 ```{r Split M/F, echo=FALSE}
 # omit NAs
 summer_w_NAs = na.omit(summer_w_NAs, Age)
@@ -349,7 +369,9 @@ F.Loser = summer_F[summer_F$Medal == 'Loser',]
 
 M.Winner = summer_M[summer_M$Medal == 'aWinner',]
 M.Loser = summer_M[summer_M$Medal == 'Loser',]
+
 ```
+
 
 ## T-Tests
 
@@ -402,6 +424,9 @@ ggplot(data=summer_M, aes(x= Medal, y=Age, fill=Medal))+
   geom_text(data = means.am, aes(label = Age, y = Age + 1))+
   ggtitle("Age of Male Athletes")+ scale_x_discrete(labels=win.lose)
 
+
+
+
 # HEIGHT
 # Females
 t.height.F = t.test(F.Winner$Height, F.Loser$Height, alternative = "two.sided", var.equal = FALSE)
@@ -435,6 +460,9 @@ ggplot(data=summer_M, aes(x= Medal, y=Height, fill=Medal)) +
   geom_text(data = means.hm, aes(label = Height, y = Height + 2.3))+
   ggtitle("Height of Male Athletes")+ scale_x_discrete(labels=win.lose)
 
+
+
+
 # WEIGHT
 # Females
 t.weight.F = t.test(F.Winner$Weight, F.Loser$Weight, alternative = "two.sided", var.equal = FALSE)
@@ -467,6 +495,7 @@ ggplot(data=summer_M, aes(x= Medal, y=Weight, fill=Medal))+ geom_boxplot()+
   ggtitle("Weight of Male Athletes")+ scale_x_discrete(labels=win.lose)
 ```
 
+
 ## Principle Component Analysis
 
 Plots show us that Height and Weight are highly correlated. Age is orthogonal to these two variables. Thus, in the analysis I will include age and only weight to avoid multicollinearity. 
@@ -495,6 +524,7 @@ pr.m$rotation
 g.m = ggbiplot::ggbiplot(pr.m, obs.scale = 1, var.scale = 1, alpha=0.2)
 g.m$layers <- c(g.m$layers, g.m$layers[[1]])
 g.m + ggtitle('PCA of Male Age, Height, & Weight')
+
 ```
 
 ## Logistic Regression
@@ -502,17 +532,31 @@ g.m + ggtitle('PCA of Male Age, Height, & Weight')
 Females: Age and weight have significant p-values. AIC is 46300, highest among feature iterations. VIF values are around 7, which is below the threshold of 10. Males: same results as females. 
 
 ```{r Regression, include=FALSE}
+#HAVE TO CHANGE aWinner back to WINNER for Regressions
+# change aWinner back to 'winner'
+summer_w_NAs$Medal <- as.character(summer_w_NAs$Medal)
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'aWinner'] <- 'Winner'
+# make sure Medal is as factor
+summer_w_NAs$Medal = as.factor(summer_w_NAs$Medal)
+
+summer_F.w = summer_w_NAs[summer_w_NAs$Sex == 'F',]
+
 # Logistic regression F
-SummerLogit.f <- glm(Medal ~ Age + Weight, data = summer_F, family = "binomial")
+SummerLogit.f <- glm(Medal ~ Age + Weight, data = summer_F.w, family = "binomial")
 summary(SummerLogit.f)
 SummerLogit.f
 
 library(faraway)
 vif(SummerLogit.f)
 
+
+
 # Logistic regression M
+summer_M.w = summer_w_NAs[summer_w_NAs$Sex == 'M',]
+head(summer_M)
 SummerLogit.m <- glm(Medal ~ Age + Weight, data = summer_M, family = "binomial")
 summary(SummerLogit.m)
+
 
 vif(SummerLogit.m)
 
@@ -533,7 +577,7 @@ Males: ROC - 0.5977, McFadden value = 1.38%
 # ROC
 loadPkg("pROC")
 prob_f_glm = predict(SummerLogit.f, type = c("response"))
-summer_F$prob_f_glm=prob_f_glm
+summer_F.w$prob_f_glm=prob_f_glm
 h <- roc(Medal~prob_f_glm, data=summer_F)
 auc(h) # area-under-curve prefer 0.8 or higher.
 plot(h)
@@ -569,6 +613,7 @@ a_age_f = a_f[order(a_f$Age),]
 a_height_f = a_f[order(a_f$Height),]
 a_weight_f = a_f[order(a_f$Weight),]
 
+
 # plot F mean age by sport
 library(ggplot2)
 ggplot(a_f, aes(x = reorder(Group.1, Age, FUN = median), y = Age)) + 
@@ -591,11 +636,14 @@ ggplot(a_f, aes(x = reorder(Group.1, Weight, FUN = median), y = Weight)) +
     theme(plot.title = element_text(color="deeppink2", size=14, face="bold"),
         axis.title.y = element_text(color="black", face='bold'))
 
+
+
 # MALE
 a_m = aggregate(summer_M[,4:6],by=list(summer_M$Sport), mean)
 a_age_m = a_m[order(a_m$Age),]
 a_height_m = a_m[order(a_m$Height),]
 a_weight_m = a_m[order(a_m$Weight),]
+
 
 # plot M mean age by sport
 library(ggplot2)
@@ -618,12 +666,22 @@ ggplot(a_m, aes(x = reorder(Group.1, Weight, FUN = median), y = Weight)) +
   ylab('Mean Weight (kg)') + xlab('') + ggtitle('Mean Weight of Male Olympic Athletes by Sport')+
     theme(plot.title = element_text(color="royalblue", size=14, face="bold"),
         axis.title.y = element_text(color="black", face='bold'))
+
 ```
 
+
 # Case Study: Gymnastics
+
+
 This is just Gymnastics, not including Rhythmic Gymnastics. Gymnasts have the smallest height and weight for both males and females.
 
 ```{r Subset Gymnastics, include=FALSE}
+# make it back to aWinner
+summer_w_NAs$Medal <- as.character(summer_w_NAs$Medal)
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Winner'] <- 'aWinner'
+summer_w_NAs$Medal = as.factor(summer_w_NAs$Medal)
+head(summer_w_NAs)
+
 # subset just gymnasts
 gymnastics = summer_w_NAs[summer_w_NAs$Sport == 'Gymnastics',]
 
@@ -638,7 +696,9 @@ gym_f.lose = gym_f[gym_f$Medal == "Loser",]
 # male win/lose
 gym_m.win = gym_m[gym_m$Medal == "aWinner",]
 gym_m.lose = gym_m[gym_m$Medal == "Loser",]
+
 ```
+
 
 ## Does Age, Height, Weight differ between winner and loser Gymnasts?
 
@@ -736,6 +796,7 @@ ggplot(data=gym_m, aes(x=Medal, y=Height, fill=Medal)) +
 # Height of females and rest of population??
 mean(gym_m$Height)
 mean(no_gym_M$Height)
+
 ```
 
 ### Weight
@@ -762,6 +823,7 @@ ggplot(data=gym_f, aes(x= Medal, y=Weight, fill=Medal)) +
 mean(gym_f$Weight)
 mean(no_gym_F$Weight)
 
+
 # Males
 gym.t.weight.M = t.test(gym_m.win$Weight, gym_m.lose$Weight, alternative = "two.sided", var.equal = FALSE)
 gym.t.weight.M
@@ -784,10 +846,24 @@ mean(no_gym_M$Weight)
 ```
 
 ```{r Gymnastics Regression, include=FALSE}
+# Change it back to 'winner'
+# change aWinner back to 'winner'
+summer_w_NAs$Medal <- as.character(summer_w_NAs$Medal)
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'aWinner'] <- 'Winner'
+# make sure Medal is as factor
+summer_w_NAs$Medal = as.factor(summer_w_NAs$Medal)
+
+# subset just gymnasts from 'winner'
+gymnastics.w = summer_w_NAs[summer_w_NAs$Sport == 'Gymnastics',]
+
+# separate males and females
+gym_f.w = gymnastics.w[gymnastics.w$Sex =='F',]
+gym_m.w = gymnastics.w[gymnastics.w$Sex =='M',]
+
+head(gym_f.w)
+
 # Logistic Regression Female Gymnasts
-c.g.f = cor(gym_f[c(4,5,6)])
-c.g.f
-gym_glm.f = glm(Medal~Age+Height, data=gym_f, family = "binomial")
+gym_glm_f = glm(Medal~Age+Height, data=gym_f.w, family = "binomial")
 summary(gym_glm_f)
 
 # vif F-Gymnast
@@ -798,8 +874,8 @@ vif(gym_glm_f)
 # ROC
 loadPkg("pROC")
 prob_f_gym = predict(gym_glm_f, type = c("response"))
-gym_f$prob_f_gym=prob_f_gym
-h.gf <- roc(Medal~prob_f_gym, data=gym_f)
+gym_f.w$prob_f_gym=prob_f_gym
+h.gf <- roc(Medal~prob_f_gym, data=gym_f.w)
 auc(h.gf) # area-under-curve prefer 0.8 or higher.
 
 # McFadden
@@ -807,18 +883,21 @@ loadPkg("pscl")
 Logitpr2_gym_f = pR2(gym_glm_f)
 Logitpr2_gym_f
 
+
+
 # Logistic Regression Male Gymnasts
-gym_glm_m = glm(Medal~Age+Height, data=gym_m, family = "binomial")
+gym_glm_m = glm(Medal~Age+Height, data=gym_m.w, family = "binomial")
 summary(gym_glm_m)
 
 # vif M-Gymnast
 vif(gym_glm_m)
 
+
 # testing the model
 # ROC
 prob_m_gym = predict(gym_glm_m, type = c("response"))
-gym_m$prob_m_gym=prob_m_gym
-h.gm <- roc(Medal~prob_m_gym, data=gym_m)
+gym_m.w$prob_m_gym=prob_m_gym
+h.gm <- roc(Medal~prob_m_gym, data=gym_m.w)
 auc(h.gm) # area-under-curve prefer 0.8 or higher.
 
 # McFadden
@@ -829,11 +908,27 @@ library(stargazer)
 stargazer(gym_glm_f, gym_glm_m, out='ahw_gym.htm')
 ```
 
+
 # Case study 2: Weightlifting
 
 Height and Weight are not proportional.
 
 ```{r Subset weightlifting, include=FALSE}
+# change it back to aWinner
+# THIS IS VERY IMPORTANT PART OF THE CODE
+summer_w_NAs <- subset(athlete_events, Season == 'Summer')
+summer_w_NAs$Medal <- as.character(summer_w_NAs$Medal)
+summer_w_NAs$Medal[is.na(summer_w_NAs$Medal)] <- "Loser"
+
+# made it 'a' in the beginning so that in the boxplots it is the one on the left
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Bronze'] <- 'aWinner'
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Silver'] <- 'aWinner'
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Gold'] <- 'aWinner'
+
+# make sure Medal is as factor
+summer_w_NAs$Medal = as.factor(summer_w_NAs$Medal)
+
+# subset weightlifting
 weightlifting = summer_w_NAs[summer_w_NAs$Sport == 'Weightlifting',]
 weightlifting.win = weightlifting[weightlifting$Medal=='aWinner',]
 weight_f = weightlifting[weightlifting$Sex =='F',]
@@ -845,6 +940,8 @@ weight_f.lose = weight_f[weight_f$Medal == "Loser",]
 weight_m.win = weight_m[weight_m$Medal == "aWinner",]
 weight_m.lose = weight_m[weight_m$Medal == "Loser",]
 ```
+
+ 
 
 ```{r weight t-test, echo=FALSE, include=FALSE}
 # take out weightlifting
@@ -880,6 +977,7 @@ ggplot(new_w, aes(x=Weight, y=Height,, color=Sport)) +
   scale_color_manual(values=c('darkgray','red'))
 ```
 
+
 ### T-tests
 
 Age is not significant difference between winners and losers (M&F).
@@ -896,6 +994,7 @@ weight.t.age.F
 weight.t.age.M = t.test(weight_m.win$Age, weight_m.lose$Age, alternative = "two.sided", var.equal = FALSE)
 weight.t.age.M
 
+
 # HEIGHT
 # females
 weight.t.height.F = t.test(weight_f.win$Height, weight_f.lose$Height, alternative = "two.sided", var.equal = FALSE)
@@ -904,6 +1003,8 @@ weight.t.height.F
 # males
 weight.t.height.M = t.test(weight_m.win$Height, weight_m.lose$Height, alternative = "two.sided", var.equal = FALSE)
 weight.t.height.M
+
+
 
 # WEIGHT
 # females
@@ -915,10 +1016,26 @@ weight.t.weight.M = t.test(weight_m.win$Weight, weight_m.lose$Weight, alternativ
 weight.t.weight.M
 ```
 
+
+
 ```{r Weightlifting Regression, include=FALSE}
+# change aWinner back to 'winner'for regressions
+summer_w_NAs$Medal <- as.character(summer_w_NAs$Medal)
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'aWinner'] <- 'Winner'
+# make sure Medal is as factor
+summer_w_NAs$Medal = as.factor(summer_w_NAs$Medal)
+
+# subset just gymnasts from 'winner'
+weightlift.w = summer_w_NAs[summer_w_NAs$Sport == 'Weightlifting',]
+
+# separate males and females
+weight_f.w = weightlift.w[weightlift.w$Sex =='F',]
+weight_m.w = weightlift.w[weightlift.w$Sex =='M',]
+
+
 # Logistic Regression Female Weightlifters
 
-weight_glm.f = glm(Medal~Age+Height+Weight, data=weight_f, family = "binomial")
+weight_glm.f = glm(Medal~Age+Height+Weight, data=weight_f.w, family = "binomial")
 summary(weight_glm.f)
 
 # vif F-Gymnast
@@ -929,36 +1046,40 @@ vif(weight_glm.f)
 # ROC
 loadPkg("pROC")
 prob_f_weight = predict(weight_glm.f, type = c("response"))
-weight_f$prob_f_weight=prob_f_weight
-h.wf <- roc(Medal~prob_f_weight, data=weight_f)
-auc(h.wf) # area-under-curve prefer 0.8 or higher.
+#weight_f.w$prob_f_weight=prob_f_weight
+#h.wf <- roc(Medal~prob_f_weight, data=weight_f.w)
+#auc(h.wf) # area-under-curve prefer 0.8 or higher.
 
 # McFadden
 loadPkg("pscl")
 Logitpr2_weight_f = pR2(weight_glm.f)
 Logitpr2_weight_f
 
-# Logistic Regression Male weightnasts
-weight_glm_m = glm(Medal~Age+Height+Weight, data=weight_m, family = "binomial")
+
+
+# Logistic Regression Male weightlifters
+weight_glm_m = glm(Medal~Age+Height+Weight, data=weight_m.w, family = "binomial")
 summary(weight_glm_m)
 
 # vif M-weightnast
 vif(weight_glm_m)
 
+
 # testing the model
 # ROC
 prob_m_weight = predict(weight_glm_m, type = c("response"))
-weight_m$prob_m_weight=prob_m_weight
-h.wm <- roc(Medal~prob_m_weight, data=weight_m)
-auc(h.wm) # area-under-curve prefer 0.8 or higher.
+#weight_m.w$prob_m_weight=prob_m_weight
+#h.wm <- roc(Medal~prob_m_weight, data=weight_m.w)
+#auc(h.wm) # area-under-curve prefer 0.8 or higher.
 
 # McFadden
 Logitpr2_weight_m = pR2(weight_glm_m)
 Logitpr2_weight_m
 
 library(stargazer)
-#stargazer(weight_glm.f, weight_glm_m, out='ahw_weight.htm')
+stargazer(weight_glm.f, weight_glm_m, out='ahw_weight.htm')
 ```
+
 
 #SMART 3
 ```{r setup, include=FALSE}
