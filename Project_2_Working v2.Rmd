@@ -1,0 +1,1558 @@
+---
+title: "Olympic Games"
+author: Sayra Moore, Andrea Piolini, Sabina Shahbazzade, Caroline Sklaver, Spencer
+  Staub
+date: "11/29/2019"
+output:
+  html_document:
+    number_sectiond: yes
+    toc: yes
+    toc_float:
+      collapsed: no
+  word_document:
+    toc: yes
+---
+
+
+```{r setting_wd}
+setwd('C:/Users/andre/Desktop/GW Classes/Introduction to Data Science')
+```
+
+```{r basicfcn, include=F}
+# can add quietly=T option to the require() function
+loadPkg = function(x) { if (!require(x,character.only=T, quietly =T)) { install.packages(x,dep=T,repos="http://cran.us.r-project.org"); if(!require(x,character.only=T)) stop("Package not found") } }
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scientific=T, digits = 3)
+loadPkg("dplyr")
+library(ggplot2)
+library(forcats)
+library(plyr)
+#library(devtools)
+library(tidyr)
+library(corrplot)
+```
+ 
+ Olympic Games
+
+# Chapter 1: Data File
+
+Olympic Games dataset is a historical dataset that contains data from Athens 1886 to Rio 2016. The dataset was found on Kaggle ( https://www.kaggle.com/heesoo37/120-years-of-olympic-history-athletes-and-results) and originally scrapped from sports-reference.com in May 2018. Our dataset consists of 27116 observations and 15 variables/columns that are ID (unique number of each athlete), Name (athlete’s name), Sex (M or F), Age (Integer), Weight (in kilograms), Height (in centimeters), Team (Team name), NOC (National Olympic Committee 3-letter code), Games (year and season), Year (integer), Season (Summer or Winter), City (Host city), Sport, Event,  Medal (gold, silver, bronze, or NA).
+
+Several Kaggle users have conducted various analyses on this dataset using Python and R. Some of these analyses specifically focused on single events, other focused on the analysis of specific sports and some others focused on the variation of age, gender, height and weight over time. 
+
+We chose this dataset because of our passion for sports and our shared excitement every time the Olympic Games take place. Therefore, we thought we could use our statistical and R expertise to learn more about these events.
+
+When we looked at the dataset, we thought it would be very interesting to test whether certain characteristics such as height and age have an effect on whether an athlete earns a medal. We also decided to focus on this question because the majority of the analyses on the dataset focus more on descriptive statistic and data visualization, and they do not perform statistical tests to see whether the variables are related and correlated.
+
+```{r read, echo=FALSE, include = TRUE}
+athlete_events = read.csv("athlete_events.csv")
+str(athlete_events)
+```
+
+# Chapter 2: Limitations of the Dataset
+
+There are four limitations in our dataset: 
+
+1.	The dataset is not complete. There are many NAs for Age, Height, Weight.
+
+2.	It does not contain the country hosting the event, it has only the city of event.
+
+3.	More information on the country hosting the event and on the ethnicity of the athletes would be beneficial 
+
+4.	Women did not begin participating until the 1900 Paris Olympics
+
+
+```{r NAs, echo=FALSE}
+# omitting NAs leaves only athletes that won medals
+summer_events = na.omit(athlete_events[athlete_events$Season == 'Summer',])
+
+# keeping NAs for analysis of winners and losers
+summer_w_NAs = athlete_events[athlete_events$Season=='Summer',]
+```
+
+# Chapter 3: Descriptive Statistics
+
+
+For descriptive statistics we have the following questions for our dataset:
+
+How many athletes participated over the years? How many males? How many females? How many medals were won by country? How many medals were won by males and females? Is there correlation between age, weight, and height? Do these have an effect on winning or not? Is there difference in average age between males and females? Does their average vary over years? 
+
+## Chapter 3.1: Medals
+
+The total number of Summer Olympic Games is 29 over 120 years (every 4 years except for 1916 when it was canceled due to WWI). The average total number of medals earned by each country is 36.72609.
+
+```{r Descriptive Stats Medals, echo=FALSE, include=FALSE}
+#Total Number of Summer Games
+unique_games = unique(summer_w_NAs$Games)
+length(unique_games)
+
+# Medals per country
+medals_table = table(summer_events$Medal,summer_events$NOC)
+mean(medals_table)
+
+```
+
+```{r Descriptive Stats Medals Graphs, echo=FALSE, include=TRUE}
+# stacked barplot of medals won by top countries
+subset_medals = medals_table[,c('USA', 'URS', 'GBR', 'GER', 'ITA', 'FRA', 'AUS',
+                                'CHN','HUN','JPN','NED','RUS','SWE')]
+barplot(subset_medals, main = "Total medals won by country", 
+        ylab = 'Country Code', xlab = "Number of medals won", col = c('gold', 'light gray','gold4'),
+        legend.text = c("Gold",'Silver','Bronze'), horiz = TRUE, las=2)
+
+
+
+# Graph of total numebr of medals won by men and women
+JustWinners <- summer_w_NAs[!is.na(summer_w_NAs$Medal), ]
+JustWinners['Number_of_Medals'] <- 1
+GenderFreq <- table(JustWinners$Sex)
+GenderFreq <- data.frame(GenderFreq)
+GenderFreq
+```
+
+```{r Descriptive Stats Medals Graphs, echo=FALSE, include=TRUE}
+ggplot(GenderFreq, aes(x = Var1, y = Freq, fill = Var1)) + geom_bar(stat = 'identity', width = 0.5) + scale_fill_manual(values=c('F' = 'deeppink1', 'M' = 'dodgerblue1')) + ggtitle('Comparison of Medals Won by Men and Women') + labs(x = 'Sex', y = 'Number of Medals')
+```
+
+Graphical representation of top countries total medals earned by medal type. This clearly shows teams that have dominated the 29 Olympic games. According the graph, we can see that the highest number of golds, silvers and bronze medals was won by USA (United States of America). The second highest number of golds, silvers and bronze medals was URS (Soviet Union). The lowest number of medals was won by SWE (Sweden). GER (Germany) and AUS (Australia) have almost the same numbers of all medals as well as GBR (Great Britain), CHN (China), and RUS (Russia). ITA (Italia) and FRA (France) have also the same number of medals. JPN (Japan) and HUN (Hungary) have the same number of golds, silvers, and bronze medals. 
+
+It is also clear that men won more medals than women, where number of medals won by men more than 15,000 and women less than 10,000. One reason of less medals won by women was that women did not participated Olympic games before 1900. 
+
+## Chapter 3.2: Athletes Participation Over 120 Years of Summer Olympic Games
+
+Graphical representation of number of athletes over the 120 years of Olympics. Additionally, graph of male and female athlete participation over time to visualize the difference in participation by gender.
+
+
+### Chapter 3.2.1: Participation by Year
+
+```{r Descriptive Statistics Athletes, echo=FALSE, include=TRUE}
+# plot male female participants over time
+group_count_mf <- table(summer_w_NAs$Sex, summer_w_NAs$Year)
+group_count_mf <- data.frame(group_count_mf)
+group_count_mf
+
+ggplot(group_count_mf, aes(x=Var2, y=Freq, group=Var1, color=Var1)) +
+  geom_point(size=2) +
+  geom_line()  +
+  scale_color_manual(values=c("deeppink1","dodgerblue1")) +
+  labs(title = "Number of male and female Olympic Athletes over time") +
+  theme(plot.title = element_text(hjust = 0.5)) + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+In our participation by year graphs we can see a general increase in participation from the inception of the Olympic games, however, there are a few points where participation decreased. We have hypothesized that these decreases in participation are largely due to wars that encompass a significant amount of the world (ie. World War 1, World War 2, Korean War). We can see that drops in population have affected men a significant amount more than females, which backs up our hypothesis.
+
+### Chapter 3.2.2: Participation by Sport
+
+```{r Descriptive Statistics Athletes 2, echo=FALSE, include=TRUE}
+# participation by sport
+sport_participation = sort(table(summer_w_NAs$Sport), decreasing = TRUE)
+barplot(sport_participation[2:20], las=2, main="Total Atheletes by Sport", col = 'gray78')
+
+# male and female by sport
+female_w_NAs = summer_w_NAs[summer_w_NAs$Sex == 'F',]
+male_w_NAs = summer_w_NAs[summer_w_NAs$Sex == 'M',]
+
+female_sport_participation = sort(table(female_w_NAs$Sport), decreasing = TRUE)
+male_sport_participation = sort(table(male_w_NAs$Sport), decreasing = TRUE)
+
+
+barplot(female_sport_participation[2:10], las=2, main="Number of Female Athletes by Sport", col = 'deeppink1',
+        ylim = c(0,18000))
+barplot(male_sport_participation[2:10], las=2, main="Number of Male Athletes by Sport", col='dodgerblue1',
+        ylim = c(0,18000))
+```
+
+We can also conclude from our participation distribution by sports graphs that gymnastics and swimming are by far the most popular sports of the Olympics, however, for females the two aforementioned sports categories make up a predominant amount of participation. For Males gymnastics and swimming are still quite popular, but the distribution of participation is significantly more even than their female counterparts.
+
+## Chapter 3.3: Age, Height, Weight
+
+```{r , echo=FALSE, include=TRUE}
+# Descriptive stats of Age, Height, Weight
+
+par(mfrow=c(1,3))
+
+hist(summer_w_NAs$Age, breaks = 30, main = 'Histogram of Age', xlab = 'Age', ylab = 'Frequency', col = 'rosybrown1')
+#hist(f$Age, breaks = 30)
+#hist(m$Age, breaks = 30)
+
+hist(summer_w_NAs$Height, breaks = 30, main = 'Histogram of Height',xlab = 'Height(cm)', ylab = 'Frequency', col = 'darkseagreen3')
+#hist(f$Height, breaks = 30)
+#hist(m$Height, breaks = 30)
+
+hist(summer_w_NAs$Weight, breaks = 30, main = 'Histogram of Weight',xlab = 'Weight(kg)', ylab = 'Frequency', col = 'lightblue3')
+#hist(f$Weight, breaks = 30)
+#hist(m$Weight, breaks = 30)
+
+```
+
+Histograms to view the distribution of Age, Height, and Weight for all Olympic Athletes. This is useful to determine the distribution. Age and weight are a bit right-skewed, height is very normal. These distributions do not vary greatly when looking at males and females separately. 
+
+### SMART QUESTION I:
+#### 4.1 Does hosting team have an advantage? Do medals won in years previous affect medals won in future olympics (ANOVA) - Do teams have “streaks” of wins? Before/after hosting change in mean medals won?
+
+In this model we will use ANOVA to measure whether hosting the Olympics has an effect on the amount of medals won, as well as the average amount of medals won per evernt (mean). This analysis will be preformed on eight countries with two years before the host event and two years after event. We predict the host country will obtian more medals in their host year and also show an increased medal count in the Olympic events after their host event. To confirm this prediction we will be looking for a low and positive correlation between the event before and host year and a medium to high correlation between the hosting year and event after.
+
+```{r Preproccessing, echo=FALSE, include=FALSE}
+# omitting NAs
+
+# Function to 
+desiredCols = c("ID","Name","Sex","Age","Height","Weight","Team","NOC","Games","Year","Season","City","Sport","Event","Medal")
+completeFun <- function(athlete_events, desiredCols) {
+  completeVec <- complete.cases(athlete_events[, desiredCols])
+  return(athlete_events[completeVec, ])
+}
+
+# Rid NA's - Keep NA Medals
+
+#columns minus medals
+na.wmedals = c("ID","Name","Sex","Age","Height","Weight","Team","NOC","Games","Year","Season","City","Sport","Event")
+
+# All columns
+na.all = c("ID","Name","Sex","Age","Height","Weight","Team","NOC","Games","Year","Season","City","Sport","Event","Medal")
+
+# Get rid of NA's except for 'Medal' Column
+athleet_events_na.wmedals = completeFun(athlete_events, na.wmedals)
+
+# Get rid of all NA's
+athleet_events_na.all = completeFun(athlete_events, na.all)
+```
+
+```{r Summer/Winter, echo=FALSE, include=FALSE}
+athlete_events_summer_na.wmedals = athleet_events_na.wmedals[ which(athleet_events_na.wmedals$Season == 'Summer'),]
+summary(athlete_events_summer_na.wmedals)
+athlete_events_winter_na.wmedals = athleet_events_na.wmedals[ which(athleet_events_na.wmedals$Season == 'Winter'),]
+```
+
+
+```{r SMART1, echo=FALSE, include=FALSE}
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+### Subset Records by Team, Year, Name, Event, Medal
+
+subvars = c('Team' , 'Year' , 'Name' , 'Event' , 'Medal')
+
+athlete_events_recode = athlete_events_summer_na.wmedals[subvars]
+
+### Recode Medals into Numerical vallues
+
+athlete_events_recode$medal_value[athlete_events_recode$Medal == "Gold"] <- 1
+athlete_events_recode$medal_value[athlete_events_recode$Medal == "Silver"] <- 1
+athlete_events_recode$medal_value[athlete_events_recode$Medal == "Bronze"] <- 1
+athlete_events_recode$medal_value[is.na(athlete_events_recode$Medal)] <- 0
+
+### Set Variables for FOR LOOP - Country and Host Years must match by Indicies
+
+Countries = c("Italy", "Japan", "Mexico", "Spain","United States","Australia","Greece","China")
+Host_Years = c(1960, 1964, 1968, 1992,1996,2000,2004,2008)
+
+plot_list = c()
+plot_list1 = c()
+aov_list = c()
+### Begin FOR LOOP - Loop Provides an Anova Table and two Graphs per Country
+
+for(i in 1:8){
+  
+  ## Index of Host Country and Olympic Year
+  
+  Country = Countries[i]
+  Host_Year = Host_Years[i]
+  
+  ## Set Years Surrounding the Host Year
+  
+  First_Year = Host_Year - 8
+  Before_Year = Host_Year - 4
+  After_Year = Host_Year + 4
+  Last_Year = Host_Year + 8
+
+  ### Subset table by Country
+  
+  athlete_events_country = athlete_events_recode[ which(athlete_events_recode$Team == Country),]
+
+  ### Subset by First Year
+  
+  athlete_events_first = athlete_events_country[ which(athlete_events_country$Year == First_Year),]
+
+  ### Subset by Before Year
+  
+  athlete_events_before = athlete_events_country[ which(athlete_events_country$Year == Before_Year),]
+
+  ### Subset by Host Year 
+  
+  athlete_events_host = athlete_events_country[ which(athlete_events_country$Year == Host_Year),]
+  
+  ### Subset by after Year
+  
+  athlete_events_after = athlete_events_country[ which(athlete_events_country$Year == After_Year),]
+  
+  ### Subset by Last Year
+  
+  athlete_events_last = athlete_events_country[ which(athlete_events_country$Year == Last_Year),]
+  
+  ### Concat Before, Host and During Year based on year, country, event inner join
+  
+  concat = rbind(athlete_events_first, athlete_events_before)
+  
+  concat1 = rbind(concat, athlete_events_host)
+  
+  concat2 = rbind(concat1, athlete_events_after)
+  
+  athlete_events_5 = rbind(concat2, athlete_events_last)
+  
+  athlete_events_5$Year = as.factor(athlete_events_5$Year)
+  
+  Sum_Medals = aggregate((Medal = athlete_events_5$medal_value), by=list(Year=athlete_events_5$Year), nfrequency = 1, FUN=sum)
+  Average_Medals = aggregate((Medal = athlete_events_5$medal_value), by=list(Year=athlete_events_5$Year), FUN=mean, nfrequency = 1)
+  
+  colnames(Sum_Medals)[2] = "Total Medals"
+  colnames(Average_Medals)[2] = "Average Medals Per Event"
+  
+  b = aov(medal_value ~ Year,data = athlete_events_5)
+  #print(summary(b))
+  #print(TukeyHSD(b))
+  
+  aov_list[[i]] <- b
+  
+  Sum_Medals <- Sum_Medals %>% mutate( ToHighlight = ifelse( Sum_Medals$Year == Host_Year, "yes", "no" ) )
+  
+  c <- ggplot(Sum_Medals, aes(x = Year, y = Sum_Medals$"Total Medals", fill = ToHighlight)) +
+    geom_bar(stat = 'identity', position = 'dodge') + ggtitle(Country) + xlab("Year") + ylab("Total Medals")+ scale_fill_manual( values = c( "yes"="gold2", "no"="dodgerblue4" ), guide = FALSE )
+  
+  plot_list[[i]] <- c
+  #print(plot_list[[i]])
+  
+  Average_Medals <- Average_Medals %>% mutate( ToHighlight = ifelse( Average_Medals$Year == Host_Year, "yes", "no" ) )
+  
+  d <- ggplot(Average_Medals, aes(x = Year, y = Average_Medals$"Average Medals Per Event", fill = ToHighlight)) +
+    geom_bar(stat = 'identity', position = 'dodge') + ggtitle(Country) + xlab("Year") + ylab("Average Medals Per Event") + scale_fill_manual( values = c( "yes"="gold2", "no"="dodgerblue4" ), guide = FALSE )
+
+  plot_list1[[i]] <- d
+  #print(plot_list1[[i]])
+}
+```
+
+##### 4.1.1 ANOVA Results Summarized
+
+```{r AOV for SMART1, echo=FALSE, include=TRUE}
+#change n = 1 to view all ANOVA tables
+n = 7
+
+for(i in n:8){
+  
+  if (i == 1){
+  print("Italy")
+}
+else if (i == 2 ){
+  print("Japan")
+}
+else if (i == 3 ){
+  print("Mexico")
+}
+else if (i == 4 ){
+  print("Spain")
+}
+else if (i == 5 ){
+  print("United States")
+}
+else if (i == 6 ){
+  print("Australia")
+}
+else if (i == 7 ){
+  print("Greece")
+}
+else if (i == 8 ){
+  print("China")
+}
+  
+print(summary(aov_list[[i]]))
+print(TukeyHSD(aov_list[[i]]))
+
+
+}
+```
+
+Italy:
+
+Results from the ANOVA test indicate high and slightly positive correlation between 1960 (host) and 1956 (Year before host), as well as a high and slightly positive correlation between 1960 and 1964 (Year after host). This suggests that the means of the before, host and after years are similar and slightly increasing over time. We can conclude that host year does slightly effect medals won and year after given the lower correlations between host year and 1952/1968.
+
+Japan:
+
+Results from the ANOVA test indicate high and slightly positive correlation between 1964 (host) and 1960 (Year before host), as well as a low and slightly positive correlation between 1964 and 1968 (Year after host). This suggest that the means of before and host years are similar and slightly increasing over time, while the means of host and after are dramaticall different and increasing over time. We can conclude that host year does slightly effect medals won and significantly effects the medals won in the year after host.
+
+Mexico:
+
+Results from the ANOVA test indicate high and slightly positive correlation between 1968 (host) and 1964 (Year before host), as well as moderate, but slightly negative correlation between 1968 and 1972 (Year after host). This suggest that the means of before and host years are similar and slightly increasing over time, while the means of host and after are dramaticall different and decreasing over time. We can conclude that host year does slightly effect medals won and significantly (but negatively) effects  the medals won in the year after host. This is an anomoly in our data.
+
+Spain:
+
+Results from the ANOVA test indicate an extremely low and slightly positive correlation between 1992 (host) and 1988 (Year before host), as well as moderate and slightly positive correlation between 1992 and 1996 (Year after host). This suggest that the means of before and host years are drastically different and increasing over time, while the means of host and after are more similar and increasing over time. We can conclude that host year does extremely effect medals won  and significantly effects  the medals won in the year after host as well.
+
+United States:
+
+Results from the ANOVA test indicate an extremely high and slightly positive correlation between 1996 (host) and 1992 (Year before host), as well as high and slightly positive correlation between 1992 and 1996 (Year after host). This suggest that the means of before and host years are significantly similar and increasing over time, as well as the means of host and after years. We can conclude that host year does slightly effect medals won  and also slightly effects the medals won in the year after host.
+
+Australia:
+
+Results from the ANOVA test indicate an extremely high and slightly negative correlation between 2000 (host) and 1996 (Year before host), as well as high and slightly positive correlation between 2000 and 2004 (Year after host). This suggest that the means of before and host years are significantly similar and decreasing over time, while the means of the host and after years are significantly similar, but increasing over time. We can conclude that host year does not effect medals won and the host year also does not effect the medals won in the year after host.This is an anomoly in our data.
+
+Greece:
+
+Results from the ANOVA test indicate an moderate and slightly negative correlation between 2004 (host) and 2000 (Year before host), as well as high and slightly negative correlation between 2004 and 2008 (Year after host). This suggest that the means of before and host years are significantly different and decreasing over time, as well as the means of host and after years (although these means are more similar). We can conclude that host year does not effect medals won and the host year also does not effect the medals won in the year after host. Although one could make an argument that knowing they had a host year coming up Greece was galvanized and therefore won more medals in the year before.
+
+China:
+
+Results from the ANOVA test indicate an low and slightly positive correlation between 2008 (host) and 2004 (Year before host), as well as high and slightly positive correlation between 2008 and 2012 (Year after host). This suggest that the means of before and host years are significantly different and increasing over time and the means of host and after years are significantly similar and increasing over time. We can conclude that host year does significantly effect medals won and the host year slighlty effects the medals won in the year after host. China also shows that their medal winning streak continues for at least two years after their host. Hosting may have galvanized the people or government into a higher Olympic participation.
+
+Conclusion:
+
+Overall most Countries exhibit the expected trends of more medals being won in the host year, as well as the subsequent years. Every country has won more medals in the year they host, however, some contries increased their participation so much that their average medals per event dropped. This shows that occasionally the host-effect doesnt actually motivate the host athletes to perform better. Some teams also dont continue their winning streak in the Olympic games after hosting, we can conclude that the Olympics aren't important enough in these countries for hosting to have a lasting effect.
+
+##### 4.1.2 Graphic Examples of Medals won from Greece and China
+
+```{r Plots for SMART1, echo=FALSE, include=TRUE}
+
+#change n = 1 to view all graphs
+n = 7
+
+for(i in n:8){
+
+x = data.frame(plot_list[[i]][1])
+y <- ggplot(x, aes(x = data.Year, y = data.Total.Medals, fill = data.ToHighlight)) +
+    geom_bar(stat = 'identity', position = 'dodge') + ggtitle(Countries[i]) + xlab("Year") + ylab("Total Medals") + scale_fill_manual( values = c( "yes"="gold2", "no"="dodgerblue4" ), guide = FALSE )
+print(y)
+
+x1 = data.frame(plot_list1[[i]][1])
+y1 <- ggplot(x1, aes(x = data.Year, y = data.Average.Medals.Per.Event, fill = data.ToHighlight)) +
+    geom_bar(stat = 'identity', position = 'dodge') + ggtitle(Countries[i]) + xlab("Year") + ylab("Average Medals Per Event") + scale_fill_manual( values = c( "yes"="gold2", "no"="dodgerblue4" ), guide = FALSE )
+print(y1)
+}
+```
+
+Greece:
+
+Greece shows an increase in medal count in the year they host, however, they show a decrease in average medals won per event. We can conclude that Greece increased its participation in their host year, which caused them to win more medals. Greece also does not exibit "host effect" in the subsequent years after hosting.
+
+
+China:
+
+China shows a dreamatic increase in medals won and average medals won per event in their host year. They also exhibit the "host effect" in subsequent years by doing better or similar to their host year and significantly better than the years prior to hosting - in terms of medals won per event.
+
+### SMART QUESTION II
+#### 4.2 Does age, height, and weight determine whether an athlete wins an olympic medal?
+
+### 4.2.1 Correlations
+
+Correlations between age, height, and weight, also represented in graphics. Height and weight are quite highly correlated (0.7951830). This is intuitive across most populations, taller individuals are also heavier.  
+
+```{r AHW Correlations, echo=FALSE, include=TRUE}
+# Corrrelations between age, height, weight
+corr_col = cor(na.omit(summer_w_NAs[c(4,5,6)]))
+corrplot(corr_col, method = "circle")
+
+# Plot the relationship between height and weight
+ggplot(summer_w_NAs, aes(x=Weight, y=Height,, color=Sex)) +
+  geom_point(size=0.5)+
+  geom_smooth(method=glm)+
+  ggtitle("Weight vs. Height for all Olympic Athletes")+
+  xlab('Weight(kg)')+ ylab("Height(cm)")+ xlim(0,175)+
+  scale_color_manual(values=c('deeppink2','royalblue'))
+```
+
+
+```{r winner loser, include=FALSE}
+# differenciate between winners and losers
+# THIS IS VERY IMPORTANT PART OF THE CODE
+summer_w_NAs <- subset(athlete_events, Season == 'Summer')
+summer_w_NAs$Medal <- as.character(summer_w_NAs$Medal)
+summer_w_NAs$Medal[is.na(summer_w_NAs$Medal)] <- "Loser"
+
+# made it 'a' in the beginning so that in the boxplots it is the one on the left
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Bronze'] <- 'aWinner'
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Silver'] <- 'aWinner'
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Gold'] <- 'aWinner'
+
+# make sure Medal is as factor
+summer_w_NAs$Medal = as.factor(summer_w_NAs$Medal)
+```
+
+
+### 4.4.2 Does the average Age, Height, or Weight different between olympic medalists and non-medalists?
+
+In order to determine whether age, height and weight differ between medalists and non-medalists, we have performed two-sample t-tests with the groups being athletes that have won a medal and athletes that have not won a medal. These tests were performed on male and female athlete populations separately because in our previous analysis from Project 1, we found that the mean age, height, and weight of males significantly differs from that of females (two-sample t-test). 
+
+```{r Split M/F, echo=FALSE}
+# omit NAs
+summer_w_NAs = na.omit(summer_w_NAs, Age)
+
+# separate males and females
+summer_F = summer_w_NAs[summer_w_NAs$Sex == 'F',]
+summer_M = summer_w_NAs[summer_w_NAs$Sex == 'M',]
+
+# separate winners and losers
+F.Winner = summer_F[summer_F$Medal == 'aWinner',]
+F.Loser = summer_F[summer_F$Medal == 'Loser',]
+
+M.Winner = summer_M[summer_M$Medal == 'aWinner',]
+M.Loser = summer_M[summer_M$Medal == 'Loser',]
+
+```
+
+
+### 4.2.3 T-Test Resluts
+
+The average age of female medalists is 24.25, while the average age of female non-medalists is 23.50 with a p-value < 0.05. The mean height for female medalists is 171.15cm, while that of non-medalists 167.61cm with a significant p-value. The mean weight for female medalists is 63.58kg, while that of non-medalists is 59.41 with a significant p-value. For each of these two-sample t-tests, we were able to reject the null hypotheses and conclude that the average age, height and weight for female olympic medalists signficantly differs from that of female olympic non-medalists. In this case, we can see that the means are higher for all three categories, such that the female medalists are, on average, older, taller, and heavier than non-medalists.   
+
+According to the male age two-sample t-test, the average age of male medalists (25.77) does not significantly differ from that of non-medalists (25.67). However, the mean height for male medalists is 181.61cm, while that of non-medalists is 178.57 with a significant p-value. The mean weight of male medalists is 79.32kg, while that of non-medalists is 75.02kg with a significant p-value. Thus, from these two-sample t-test for male athletes age, height, and weight, we conclude that the average height and weight of athletes who earned a medal signficantly differs from those who did not earn a medal. In this case, the average height and weight is higher for medalists, such that male medalists are taller and heavier than non-medalists. Age does not significantly differ between male medalists and non-medalists. 
+
+
+```{r t-test, echo=FALSE, include = TRUE}
+win.lose = c('Won a medal', "Did not win a medal")
+# two-sample t-test between age/height/weight of winner and age of losers
+
+# AGE
+# Females
+# t-test
+t.age.F = t.test(F.Winner$Age, F.Loser$Age, alternative = "two.sided", var.equal = FALSE)
+t.age.F
+# aggregate means of age for females
+means.af <- aggregate(Age ~ Medal, summer_F, mean)
+means.af$Age = round(means.af$Age, 3)
+# boxplot
+ggplot(data=summer_F, aes(x= Medal, y=Age, fill=Medal)) + 
+  geom_boxplot() +
+  scale_fill_manual(values=c("gold", 'gray'))+
+  stat_summary(fun.y=mean, colour="darkred", geom="point", 
+               shape=18, size=2, show.legend =FALSE) + 
+  theme(legend.position = "none", axis.title.x = element_blank())+labs(y="Age (years)")+
+  geom_text(data = means.af, aes(label = Age, y = Age + 1.2))+
+  ggtitle("Age of Female Athletes")+ scale_x_discrete(labels=win.lose)
+
+# Males
+t.age.M = t.test(M.Winner$Age, M.Loser$Age, alternative = "two.sided", var.equal = FALSE)
+t.age.M
+means.am <- aggregate(Age ~ Medal, summer_M, mean)
+means.am$Age = round(means.am$Age, 3)
+# boxplot
+ggplot(data=summer_M, aes(x= Medal, y=Age, fill=Medal))+
+  geom_boxplot() +
+  scale_fill_manual(values=c("gold", 'gray'))+
+  stat_summary(fun.y=mean, colour="darkred", geom="point", 
+               shape=18, size=2, show.legend =FALSE) + 
+  theme(legend.position = "none", axis.title.x = element_blank())+labs(y="Age (years)")+
+  geom_text(data = means.am, aes(label = Age, y = Age + 1))+
+  ggtitle("Age of Male Athletes")+ scale_x_discrete(labels=win.lose)
+
+
+
+
+# HEIGHT
+# Females
+t.height.F = t.test(F.Winner$Height, F.Loser$Height, alternative = "two.sided", var.equal = FALSE)
+t.height.F
+# aggregate means of Height
+means.hf <- aggregate(Height ~ Medal, summer_F, mean)
+means.hf$Height = round(means.hf$Height, 2)
+# boxplot
+ggplot(data=summer_F, aes(x= Medal, y=Height, fill=Medal)) + 
+  geom_boxplot() +
+  scale_fill_manual(values=c("gold", 'gray'))+
+  stat_summary(fun.y=mean, colour="darkred", geom="point", 
+               shape=18, size=2, show.legend =FALSE) + 
+  theme(legend.position = "none", axis.title.x = element_blank())+labs(y="Height (cm)")+
+  geom_text(data = means.hf, aes(label = Height, y = Height + 2.3))+
+  ggtitle("Height of Female Athletes")+ scale_x_discrete(labels=win.lose)
+
+# Males
+t.height.M = t.test(M.Winner$Height, M.Loser$Height, alternative = "two.sided", var.equal = FALSE)
+t.height.M
+# aggregate means of Height
+means.hm <- aggregate(Height ~ Medal, summer_M, mean)
+means.hm$Height = round(means.hm$Height, 2)
+# boxplot
+ggplot(data=summer_M, aes(x= Medal, y=Height, fill=Medal)) + 
+  geom_boxplot() +
+  scale_fill_manual(values=c("gold", 'gray'))+
+  stat_summary(fun.y=mean, colour="darkred", geom="point", 
+               shape=18, size=2, show.legend =FALSE) + 
+  theme(legend.position = "none", axis.title.x = element_blank())+ labs(y="Height (cm)")+
+  geom_text(data = means.hm, aes(label = Height, y = Height + 2.3))+
+  ggtitle("Height of Male Athletes")+ scale_x_discrete(labels=win.lose)
+
+
+
+
+# WEIGHT
+# Females
+t.weight.F = t.test(F.Winner$Weight, F.Loser$Weight, alternative = "two.sided", var.equal = FALSE)
+t.weight.F
+# aggregate means of Weight
+means.wf <- aggregate(Weight ~ Medal, summer_F, mean)
+means.wf$Weight = round(means.wf$Weight, 2)
+# boxplot
+ggplot(data=summer_F, aes(x= Medal, y=Weight, fill=Medal)) + geom_boxplot() +
+  scale_fill_manual(values=c("gold", 'gray'))+
+  stat_summary(fun.y=mean, colour="darkred", geom="point", 
+               shape=18, size=2, show.legend =FALSE) + 
+  theme(legend.position = "none", axis.title.x = element_blank())+ labs(y="Weight (kg)")+
+  geom_text(data = means.wf, aes(label = Weight, y = Weight + 2.5))+
+  ggtitle("Weight of Female Athletes")+ scale_x_discrete(labels=win.lose)
+
+# Males
+t.weight.M = t.test(M.Winner$Weight, M.Loser$Weight, alternative = "two.sided", var.equal = FALSE)
+t.weight.M
+# aggregate means of Weight
+means.wm <- aggregate(Weight ~ Medal, summer_M, mean)
+means.wm$Weight = round(means.wm$Weight, 2)
+# boxplot
+ggplot(data=summer_M, aes(x= Medal, y=Weight, fill=Medal))+ geom_boxplot()+ 
+  scale_fill_manual(values=c("gold", 'gray'))+
+  stat_summary(fun.y=mean, colour="darkred", geom="point", 
+               shape=18, size=2) + 
+  theme(legend.position = "none", axis.title.x = element_blank())+labs(y="Weight (kg)")+
+  geom_text(data = means.wm, aes(label = Weight, y = Weight + 3))+
+  ggtitle("Weight of Male Athletes")+ scale_x_discrete(labels=win.lose)
+```
+
+
+## 4.3. Principle Component Analysis
+
+In order to further confirm which variables to include in the regression analysis, we performed Principle Component Analysis. Plots show us, once again, that height and weight are highly correlated. Age is almost orthogonal to these two variables. Thus, in the regression analysis we will include age and either height or weight, not both, to avoid multicollinearity. 
+
+```{r Feature Selection, echo=FALSE}
+# PCA
+#library(devtools)
+remotes::install_github('vqv/ggbiplot')
+loadPkg("ggbiplot")
+loadPkg("scales")
+# data with just Age, height weight for females
+age_height_weight_F = summer_F[,4:6]
+
+
+pr.f =prcomp(age_height_weight_F, scale =TRUE)
+summary(pr.f)
+pr.f$rotation
+g.f = ggbiplot::ggbiplot(pr.f, obs.scale = 1, var.scale = 1, alpha=0.2)
+g.f$layers <- c(g.f$layers, g.f$layers[[1]])
+g.f + ggtitle('PCA of Female Age, Height, & Weight')
+
+
+# Males PCA
+# data with just Age, height weight for males
+age_height_weight_M = summer_M[,4:6]
+
+pr.m =prcomp(age_height_weight_M, scale =TRUE)
+summary(pr.m)
+pr.m$rotation
+g.m = ggbiplot::ggbiplot(pr.m, obs.scale = 1, var.scale = 1, alpha=0.2)
+g.m$layers <- c(g.m$layers, g.m$layers[[1]])
+g.m + ggtitle('PCA of Male Age, Height, & Weight')
+
+```
+
+## 4.4. Logistic Regression
+
+In order to evaluate the extent to which age, height, and weight determine whether an athlete wins an olympic medal, we will perform multiple-Logisitic Regressions. This method was chosen because the dependent variable, 'Medal' is categorical: 'Won a medal', or 'Did not win a medal'. The independent variables include Age and Weight. Height was not included due to its strong correlation with Weight. 
+
+According to the results, in the female Logistic Regression, age and weight have significant p-values (<0.05).As female age increases by one unit, log odds of winning a medal increases by 0.015. As female weight, and therefore height, increases by one unit, log odds of winning a medal increases by 0.031. These results align with our t-tests for female athletes. 
+
+The male logistic regression yeilds similar results to that of females, however, the coefficient for Age reveals a negative relationship with winning a medal. As male age increases by one unit, log odds of winning a medal decreases by 0.004. 
+As male weight, and thus height, increases by one unit, log odds of winning a medal increases by 0.021. 
+
+```{r Regression, include=FALSE}
+#HAVE TO CHANGE aWinner back to WINNER for Regressions
+# change aWinner back to 'winner'
+summer_w_NAs$Medal <- as.character(summer_w_NAs$Medal)
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'aWinner'] <- 'Winner'
+# make sure Medal is as factor
+summer_w_NAs$Medal = as.factor(summer_w_NAs$Medal)
+
+summer_F.w = summer_w_NAs[summer_w_NAs$Sex == 'F',]
+
+# Logistic regression F
+SummerLogit.f <- glm(Medal ~ Age + Weight, data = summer_F.w, family = "binomial")
+summary(SummerLogit.f)
+SummerLogit.f
+
+library(faraway)
+vif(SummerLogit.f)
+
+
+
+# Logistic regression M
+summer_M.w = summer_w_NAs[summer_w_NAs$Sex == 'M',]
+head(summer_M)
+SummerLogit.m <- glm(Medal ~ Age + Weight, data = summer_M, family = "binomial")
+summary(SummerLogit.m)
+
+
+vif(SummerLogit.m)
+
+# output
+library(stargazer)
+stargazer(SummerLogit.f, SummerLogit.m, out='ahw.htm')
+```
+
+### 4.4.1 Testing the model
+
+VIF values for each of these models are around 7, which is below the general threshold of 10. In the female model, the Area under the curve is 0.6243, indicating this is not a great classifier. On top of that, this model produces a McFadden value of 2.24%, quite a low value. In the male model, the ROC AOC score is 0.577, and the McFadden value is 1.38%. Again, these values indicate this is not a good model in predicting medals won. 
+
+
+```{r Testing glm, include=FALSE}
+# AIC with just using weight is higher than with height or than with height instead of weight
+
+# FEMALES
+# ROC
+loadPkg("pROC")
+prob_f_glm = predict(SummerLogit.f, type = c("response"))
+summer_F.w$prob_f_glm=prob_f_glm
+h <- roc(Medal~prob_f_glm, data=summer_F)
+auc(h) # area-under-curve prefer 0.8 or higher.
+plot(h)
+
+# McFadden
+loadPkg("pscl")
+Logitpr2_f = pR2(SummerLogit.f)
+Logitpr2_f
+
+# MALES
+# ROC
+prob_m_glm = predict(SummerLogit.m, type = c("response"))
+summer_M$prob_m_glm=prob_m_glm
+g_m <- roc(Medal~prob_m_glm, data= summer_M)
+auc(g_m)
+plot(g_m)
+
+# McFadden
+loadPkg("pscl")
+Logitpr2_m = pR2(SummerLogit.m)
+Logitpr2_m
+```
+
+## 4.5. Examining Age, Height and Weight, by sport
+
+Average Age, Height, Weight by sport tables for males and females are presented. These graphs help us depict which sports may be outliers in each of these categoreis. From these tables, we have chosen two case studies: Gymnastics and Weightlifting. Gymnastics is on the low-end, if not the lowest, in average Age, Height, and Weight for both males and females. Weightlifting was chosen out of interest after observing their position in Height, which is on the low-end, in contrast to their average Weight, on the higher-end (for both males and females). 
+
+```{r Averages by Sport, echo=FALSE}
+# FEMALE
+# table of average age, height weight by sport
+a_f = aggregate(summer_F[,4:6],by=list(summer_F$Sport), mean)
+a_age_f = a_f[order(a_f$Age),]
+a_height_f = a_f[order(a_f$Height),]
+a_weight_f = a_f[order(a_f$Weight),]
+
+
+# plot F mean age by sport
+library(ggplot2)
+ggplot(a_f, aes(x = reorder(Group.1, Age, FUN = median), y = Age)) + 
+  geom_boxplot() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab('Mean Age (years)') + xlab('') + ggtitle('Mean Age of Female Olympic Athletes by Sport')+
+  theme(plot.title = element_text(color="deeppink2", size=14, face="bold"),
+        axis.title.y = element_text(color="black", face='bold'))
+
+# plot f meab height by sport
+ggplot(a_f, aes(x = reorder(Group.1, Height, FUN = median), y = Height)) + 
+  geom_boxplot() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab('Mean Height (cm)') + xlab('') + ggtitle('Mean Height of Female Olympic Athletes by Sport')+
+    theme(plot.title = element_text(color="deeppink2", size=14, face="bold"),
+        axis.title.y = element_text(color="black", face='bold'))
+
+# plot f mean weight by sport
+ggplot(a_f, aes(x = reorder(Group.1, Weight, FUN = median), y = Weight)) + 
+  geom_boxplot() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab('Mean Weight (kg)') + xlab('') + ggtitle('Mean Weight of Female Olympic Athletes by Sport')+
+    theme(plot.title = element_text(color="deeppink2", size=14, face="bold"),
+        axis.title.y = element_text(color="black", face='bold'))
+
+
+
+# MALE
+a_m = aggregate(summer_M[,4:6],by=list(summer_M$Sport), mean)
+a_age_m = a_m[order(a_m$Age),]
+a_height_m = a_m[order(a_m$Height),]
+a_weight_m = a_m[order(a_m$Weight),]
+
+
+# plot M mean age by sport
+library(ggplot2)
+ggplot(a_m, aes(x = reorder(Group.1, Age, FUN = median), y = Age)) + 
+  geom_boxplot() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab('Mean Age (years)') + xlab('') + ggtitle('Mean Age of Male Olympic Athletes by Sport')+
+  theme(plot.title = element_text(color="royalblue", size=14, face="bold"),
+        axis.title.y = element_text(color="black", face='bold'))
+
+# plot M mean height by sport
+ggplot(a_m, aes(x = reorder(Group.1, Height, FUN = median), y = Height)) + 
+  geom_boxplot() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab('Mean Height (cm)') + xlab('') + ggtitle('Mean Height of Male Olympic Athletes by Sport')+
+    theme(plot.title = element_text(color="royalblue", size=14, face="bold"),
+        axis.title.y = element_text(color="black", face='bold'))
+
+# plot M mean weight by sport
+ggplot(a_m, aes(x = reorder(Group.1, Weight, FUN = median), y = Weight)) + 
+  geom_boxplot() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylab('Mean Weight (kg)') + xlab('') + ggtitle('Mean Weight of Male Olympic Athletes by Sport')+
+    theme(plot.title = element_text(color="royalblue", size=14, face="bold"),
+        axis.title.y = element_text(color="black", face='bold'))
+
+```
+
+
+## 4.6. Case Study I: Gymnastics
+
+
+Gymnastics is one of the most popular Olympic Sports to watch. As we have seen in our graphs, and as is common knowledge, gymnasts are generally younger, shorter, and lighter than most other athletes.Thus, we would like to determine whether these independent variables play a significant role in an gymnasts' chance of earning an olympic medal.
+
+```{r Subset Gymnastics, include=FALSE}
+# make it back to aWinner
+summer_w_NAs$Medal <- as.character(summer_w_NAs$Medal)
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Winner'] <- 'aWinner'
+summer_w_NAs$Medal = as.factor(summer_w_NAs$Medal)
+head(summer_w_NAs)
+
+# subset just gymnasts
+gymnastics = summer_w_NAs[summer_w_NAs$Sport == 'Gymnastics',]
+
+# separate males and females
+gym_f = gymnastics[gymnastics$Sex =='F',]
+gym_m = gymnastics[gymnastics$Sex =='M',]
+
+# female win/lose
+gym_f.win = gym_f[gym_f$Medal == "aWinner",]
+gym_f.lose = gym_f[gym_f$Medal == "Loser",]
+
+# male win/lose
+gym_m.win = gym_m[gym_m$Medal == "aWinner",]
+gym_m.lose = gym_m[gym_m$Medal == "Loser",]
+
+```
+
+
+### 4.6.1 Does Age, Height, Weight differ between Gymnast medalists and non-medalists?
+
+In a similar fashion to our previous analysis of all athletes, we would like to determine whether medlists and non-medalists significantly vary in their average age, height, or weight. We performed two-sample t-tests in the same manner. 
+
+#### Age
+
+The average age female gymnasts is 18.72, meanwhile, that of all other female olympic athletes is 24.47. According to the t-test results, the age of female gymnast medalists significantly differs from that of gymnast non-medalists. As shown on the box-plot, the average gymnast medalist is slightly older than the average gymnast non-medalist. 
+
+The average age of male gymnasts is 23.79, while that of all other athletes is 25.90. Clearly, this is not as great of a difference compared to that of females. In the t-test between male gymnast medalists and non-medalists, the p-value much greater that 0.05, thus we cannot reject the null hypothesis and conclude that the average age does not differ between the two groups. 
+
+From these results, we can infer that age plays a bigger factor in women's gymnastics than it does in men's gymnastics. 
+
+```{r Gymnastics Age, include=FALSE}
+# AGE
+# Females
+# t-test
+gym.t.age.F = t.test(gym_f.win$Age, gym_f.lose$Age, alternative = "two.sided", var.equal = FALSE)
+gym.t.age.F
+# aggregate means of age for females
+gym.means.af <- aggregate(Age ~ Medal, gym_f, mean)
+gym.means.af$Age = round(gym.means.af$Age, 2)
+# boxplot
+ggplot(data=gym_f, aes(x= Medal, y=Age, fill=Medal)) + 
+  geom_boxplot() +
+  scale_fill_manual(values=c("gold", 'gray'))+
+  stat_summary(fun.y=mean, colour="darkred", geom="point", 
+               shape=18, size=2, show.legend =FALSE) + 
+  theme(legend.position = "none", axis.title.x = element_blank())+labs(y="Age (years)")+
+  geom_text(data = gym.means.af, aes(label = Age, y = Age + 0.5))+
+  ggtitle("Age of Female Gymnasts") + scale_x_discrete(labels=win.lose)
+
+# Age of females and rest of population??
+mean(gym_f$Age)
+no_gym_F = summer_F[summer_F$Sport != "Gymnastics",]
+mean(no_gym_F$Age)
+
+# Males
+# t-test
+gym.t.age.M = t.test(gym_m.win$Age, gym_m.lose$Age, alternative = "two.sided", var.equal = FALSE)
+gym.t.age.M
+# aggregate means of age for females
+gym.means.am <- aggregate(Age ~ Medal, gym_m, mean)
+gym.means.am$Age = round(gym.means.am$Age, 2)
+# boxplot
+ggplot(data=gym_m, aes(x= Medal, y=Age, fill=Medal)) + 
+  geom_boxplot() +
+  scale_fill_manual(values=c('gold','gray'))+
+  stat_summary(fun.y=mean, colour="darkred", geom="point", 
+               shape=18, size=2, show.legend =FALSE) + 
+  theme(legend.position = "none", axis.title.x = element_blank())+labs(y="Age (years)")+
+  geom_text(data = gym.means.am, aes(label = Age, y = Age + 1))+
+  ggtitle("Age of Male Gymnasts")+ scale_x_discrete(labels=win.lose)
+
+# Age of males and rest of population
+mean(gym_m$Age) 
+no_gym_M = summer_M[summer_M$Sport != "Gymnastics",]
+mean(no_gym_M$Age)
+```
+
+####  Height
+
+The average height female gymnasts is 156.16cm, meanwhile, that of all other female olympic athletes is 170.17cm. According to the t-test results, the height of female gymnast medalists significantly differs from that of gymnast non-medalists. As shown on the box-plot, the average gymnast medalist is shorter than the average gymnast non-medalist. 
+
+The average height of male gymnasts is 167.61cm, while that of all other athletes is 180.21cm.According to the t-test results, the height of male gymnast medalists significantly differs from that of gymnast non-medalists. As seen on the box-plot, the average male gymnast medalist is shorter than the average male gymnast non-medalist.
+
+From these results, we can infer that height plays a significant role in both men and women's gymnastics. It seems that shorter gymnasts perform better. 
+
+
+```{r Gymnastics Height, echo=FALSE}
+# Females
+gym.t.height.F = t.test(gym_f.win$Height, gym_f.lose$Height, alternative = "two.sided", var.equal = FALSE)
+gym.t.height.F
+# aggregate means of Height
+gym.means.hf <- aggregate(Height ~ Medal, gym_f, mean)
+gym.means.hf$Height = round(gym.means.hf$Height, 2)
+# boxplot
+ggplot(data=gym_f, aes(x= Medal, y=Height, fill=Medal)) + 
+  geom_boxplot() +
+  scale_fill_manual(values=c("gold", 'gray'))+
+  stat_summary(fun.y=mean, colour="darkred", geom="point", 
+               shape=18, size=2, show.legend =FALSE) + 
+  theme(legend.position = "none", axis.title.x = element_blank())+labs(y="Height (cm)")+
+  geom_text(data = gym.means.hf, aes(label = Height, y = Height + 3))+
+  ggtitle("Height of Female Gymnasts") + scale_x_discrete(labels=win.lose)
+
+# Height of females and rest of population??
+mean(gym_f$Height)
+mean(no_gym_F$Height)
+
+# Males
+gym.t.height.M = t.test(gym_m.win$Height, gym_m.lose$Height, alternative = "two.sided", var.equal = FALSE)
+gym.t.height.M
+# aggregate means of Height
+gym.means.hm <- aggregate(Height ~ Medal, gym_m, mean)
+gym.means.hm$Height = round(gym.means.hm$Height, 2)
+# boxplot
+ggplot(data=gym_m, aes(x=Medal, y=Height, fill=Medal)) + 
+  geom_boxplot() +
+  scale_fill_manual(values=c("gold", 'gray'))+
+  stat_summary(fun.y=mean, colour="darkred", geom="point", 
+               shape=18, size=2, show.legend =FALSE) + 
+  theme(legend.position = "none", axis.title.x = element_blank())+labs(y="Height (cm)")+
+  geom_text(data = gym.means.hm, aes(label = Height, y = Height + 2.3))+
+  ggtitle("Height of Male Gymnasts") + scale_x_discrete(labels=win.lose)
+
+# Height of females and rest of population??
+mean(gym_m$Height)
+mean(no_gym_M$Height)
+
+```
+
+#### Weight
+
+The results and interpretation of discussed above for height are very similar to that of weight. This is the expected results since height and weight are highly correlated. So, in all, gymnasts who earn medals have significantly different mean weights compared to those who do not win medals. And, as shown on the box-plots below, the mean weight is lighter for medalist. 
+
+```{r Gymnast Weight, echo=FALSE}
+# Females
+gym.t.weight.F = t.test(gym_f.win$Weight, gym_f.lose$Weight, alternative = "two.sided", var.equal = FALSE)
+gym.t.weight.F
+# aggregate means of Weight
+gym.means.wf <- aggregate(Weight ~ Medal, gym_f, mean)
+gym.means.wf$Weight = round(gym.means.wf$Weight, 2)
+# boxplot
+ggplot(data=gym_f, aes(x= Medal, y=Weight, fill=Medal)) + 
+  geom_boxplot() +
+  scale_fill_manual(values=c("gold", 'gray'))+
+  stat_summary(fun.y=mean, colour="darkred", geom="point", 
+               shape=18, size=2, show.legend =FALSE) + 
+  theme(legend.position = "none", axis.title.x = element_blank())+labs(y="Weight (kg)")+
+  geom_text(data = gym.means.wf, aes(label = Weight, y = Weight + 2.3))+
+  ggtitle("Weight of Female Gymnasts") + scale_x_discrete(labels=win.lose)
+
+# Weight of females and rest of population??
+mean(gym_f$Weight)
+mean(no_gym_F$Weight)
+
+
+# Males
+gym.t.weight.M = t.test(gym_m.win$Weight, gym_m.lose$Weight, alternative = "two.sided", var.equal = FALSE)
+gym.t.weight.M
+# aggregate means of Weight
+gym.means.wm <- aggregate(Weight ~ Medal, gym_m, mean)
+gym.means.wm$Weight = round(gym.means.wm$Weight, 2)
+# boxplot
+ggplot(data=gym_m, aes(x= Medal, y=Weight, fill=Medal)) + 
+  geom_boxplot() +
+  scale_fill_manual(values=c("gold", 'gray'))+
+  stat_summary(fun.y=mean, colour="darkred", geom="point", 
+               shape=18, size=2, show.legend =FALSE) + 
+  theme(legend.position = "none", axis.title.x = element_blank())+labs(y="Weight (kg)")+
+  geom_text(data = gym.means.wm, aes(label = Weight, y = Weight + 2))+
+  ggtitle("Weight of Male Gymnasts") + scale_x_discrete(labels=win.lose)
+
+# Weight of females and rest of population??
+mean(gym_m$Weight)
+mean(no_gym_M$Weight)
+```
+
+### 4.6.2 Gymnastics Logistic Regression
+
+According to the Gymnastics Logistic model we have built with Age and Height predicting whether the athlete wins a medal, for females, age and height have significant p-values. For males, only height has a significant p-value. As females increase age by one unit, the log odds of winning a medal increases by 0.05. As female gymnast height increases by one unit, log odds of winning a medal decreases by 0.029. These results align with our t-test results for female gymnasts: the average age of gymnasts medalists is older than that of non-medalists, and gymnast medalists are shorter (and lighter) than non-medalists. In the case of Men's Gymnastics, age does not significantly predict winning a medal. As height (and thus weight) increases by one unit, log odds of winning a medal decreases by 0.06. Again, these results are consistent with our Men's Gymnastics t-tests. Shorter/lighter male gymnasts are more likely to win an olympic medal, as are females.
+
+However, in testing these models, the area under the curve is 0.5786 and 0.5936 for females and males, respectively. Additionally, McFadden values are quite low at 0.73% and 1.26%. From this we conclude that these are not good models of predicting gymnastics olympic medalling. Perhaps with additional independent variables such as, years of training, ethnicity, muscle mass, etc. we would be able to create a better model. 
+
+
+```{r Gymnastics Regression, include=FALSE}
+# Change it back to 'winner'
+# change aWinner back to 'winner'
+summer_w_NAs$Medal <- as.character(summer_w_NAs$Medal)
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'aWinner'] <- 'Winner'
+# make sure Medal is as factor
+summer_w_NAs$Medal = as.factor(summer_w_NAs$Medal)
+
+# subset just gymnasts from 'winner'
+gymnastics.w = summer_w_NAs[summer_w_NAs$Sport == 'Gymnastics',]
+
+# separate males and females
+gym_f.w = gymnastics.w[gymnastics.w$Sex =='F',]
+gym_m.w = gymnastics.w[gymnastics.w$Sex =='M',]
+
+head(gym_f.w)
+
+# Logistic Regression Female Gymnasts
+gym_glm_f = glm(Medal~Age+Height, data=gym_f.w, family = "binomial")
+summary(gym_glm_f)
+
+# vif F-Gymnast
+library(faraway)
+vif(gym_glm_f)
+
+# testing the model
+# ROC
+loadPkg("pROC")
+prob_f_gym = predict(gym_glm_f, type = c("response"))
+gym_f.w$prob_f_gym=prob_f_gym
+h.gf <- roc(Medal~prob_f_gym, data=gym_f.w)
+auc(h.gf) # area-under-curve prefer 0.8 or higher.
+
+# McFadden
+loadPkg("pscl")
+Logitpr2_gym_f = pR2(gym_glm_f)
+Logitpr2_gym_f
+
+
+
+# Logistic Regression Male Gymnasts
+gym_glm_m = glm(Medal~Age+Height, data=gym_m.w, family = "binomial")
+summary(gym_glm_m)
+
+# vif M-Gymnast
+vif(gym_glm_m)
+
+
+# testing the model
+# ROC
+prob_m_gym = predict(gym_glm_m, type = c("response"))
+gym_m.w$prob_m_gym=prob_m_gym
+h.gm <- roc(Medal~prob_m_gym, data=gym_m.w)
+auc(h.gm) # area-under-curve prefer 0.8 or higher.
+
+# McFadden
+Logitpr2_gym_m = pR2(gym_glm_m)
+Logitpr2_gym_m
+
+library(stargazer)
+stargazer(gym_glm_f, gym_glm_m, out='ahw_gym.htm')
+```
+
+
+### 4.7. Case study II: Weightlifting
+
+Our next case study, weightlifting was interesting because on our boxplot of average height and weight across all sports, for both males and females, weightlifters were on the lower-end for height and higher-end for weight when compared to all other sports. The graph of Weight vs. Height printed below depicts the relationship between those of weightlifters in red and all other athletes in gray. Clearly, the relationship is not as linear when compared to other athletes. 
+
+```{r Subset weightlifting, include=FALSE}
+# change it back to aWinner
+# THIS IS VERY IMPORTANT PART OF THE CODE
+summer_w_NAs <- subset(athlete_events, Season == 'Summer')
+summer_w_NAs$Medal <- as.character(summer_w_NAs$Medal)
+summer_w_NAs$Medal[is.na(summer_w_NAs$Medal)] <- "Loser"
+
+# made it 'a' in the beginning so that in the boxplots it is the one on the left
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Bronze'] <- 'aWinner'
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Silver'] <- 'aWinner'
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Gold'] <- 'aWinner'
+
+# make sure Medal is as factor
+summer_w_NAs$Medal = as.factor(summer_w_NAs$Medal)
+
+# subset weightlifting
+weightlifting = summer_w_NAs[summer_w_NAs$Sport == 'Weightlifting',]
+weightlifting.win = weightlifting[weightlifting$Medal=='aWinner',]
+weight_f = weightlifting[weightlifting$Sex =='F',]
+weight_m = weightlifting[weightlifting$Sex =='M',]
+
+weight_f.win = weight_f[weight_f$Medal == "aWinner",]
+weight_f.lose = weight_f[weight_f$Medal == "Loser",]
+
+weight_m.win = weight_m[weight_m$Medal == "aWinner",]
+weight_m.lose = weight_m[weight_m$Medal == "Loser",]
+```
+
+ 
+
+```{r weight t-test, echo=FALSE, include=TRUE}
+# take out weightlifting
+no_weightlift = summer_w_NAs[summer_w_NAs$Sport != 'Weightlifting',]
+
+# plot weightlifters height and weight
+# ggplot(weightlifting, aes(x=Weight, y=Height,, color=Sex)) +
+#  geom_point(size=0.5)+
+#  geom_smooth(method='auto')+
+#  ggtitle("Weight vs. Height for Weightlifters")+
+#  xlab('Weight(kg)')+ ylab("Height(cm)")+ xlim(0,175)+
+#  scale_color_manual(values=c('deeppink2','royalblue'))
+
+# plot winners height vs. weight
+#ggplot(weightlifting.win, aes(x=Weight, y=Height,, color=Sex)) +
+#  geom_point(size=0.5)+
+#  geom_smooth(method='auto')+
+#  ggtitle("Weight vs. Height for Weightlifters")+
+#  xlab('Weight(kg)')+ ylab("Height(cm)")+ xlim(0,175)+
+#  scale_color_manual(values=c('deeppink2','royalblue'))
+
+# create dataframe that marks all other sports as "other" and keeps weightlifting
+new_w = summer_w_NAs
+new_w$Sport = as.character(new_w$Sport)
+new_w$Sport[new_w$Sport!='Weightlifting']<- 'All other sports'
+
+# plot height vs. weight for all other sports and weightlifting to compare
+ggplot(new_w, aes(x=Weight, y=Height,, color=Sport)) +
+  geom_point(size=0.3)+
+  geom_smooth(method='auto')+
+  ggtitle("Weight vs. Height of All Athletes and Weightlifters")+
+  xlab('Weight(kg)')+ ylab("Height(cm)")+ xlim(0,200)+
+  scale_color_manual(values=c('darkgray','red'))
+```
+
+
+#### 4.7.1 Weightliftiing T-Tests
+
+In a similar fashion to our other case study and previous analysis of all athletes, we have performed t-tests to evaluate the difference between weightlifting olympic medalists and non-medalists age, height, and weight. Our results reveal that the average age, height, and weight of female weightlifting medalists does not significantly differ from that of non-medalists. Males have similar results, however the male weightlifting medalists have a significant p-value, thus significantly different mean for Weight compared to non-medalists. Male weightlifting medalists are on average 82.91kg, while non-medalists average 79.77kg. So, it may be beneficial for male weightlifters to be heavier if they want to win a medal. 
+
+```{r Weightlifting t-test, include=FALSE}
+# AGE: 
+# Females
+weight.t.age.F = t.test(weight_f.win$Age, weight_f.lose$Age, alternative = "two.sided", var.equal = FALSE)
+weight.t.age.F
+
+# males
+weight.t.age.M = t.test(weight_m.win$Age, weight_m.lose$Age, alternative = "two.sided", var.equal = FALSE)
+weight.t.age.M
+
+
+# HEIGHT
+# females
+weight.t.height.F = t.test(weight_f.win$Height, weight_f.lose$Height, alternative = "two.sided", var.equal = FALSE)
+weight.t.height.F
+
+# males
+weight.t.height.M = t.test(weight_m.win$Height, weight_m.lose$Height, alternative = "two.sided", var.equal = FALSE)
+weight.t.height.M
+
+
+
+# WEIGHT
+# females
+weight.t.weight.F = t.test(weight_f.win$Weight, weight_f.lose$Weight, alternative = "two.sided", var.equal = FALSE)
+weight.t.weight.F
+
+# males
+weight.t.weight.M = t.test(weight_m.win$Weight, weight_m.lose$Weight, alternative = "two.sided", var.equal = FALSE)
+weight.t.weight.M
+```
+
+#### 4.7.2 Weightliftiing Logistic Regressions
+
+In our logistic models for weightlifters, we have included Age, Height, and Weight. In this case, because height and weight are less highly correlated, we have included both variables in the model. The results for female weightlifters reveal that age, height, and weight are not signifcant predictors of winning a weightlifting medal. Conversely, for males, both height and weight had significant p-values. As male weightlifters' height increases by one unit, log odds of winning a medal decrease by 0.033. As male weightlifters' weight increases by one unit, log odds of winning a medal increases by 0.016. This means that shorter, heavier male weightlifters are more likely to win an olympic medal. This is quite interesting consdiering it differs from our results of all altheltes and Case Study I. This proves that age, height, and weight affects athletes of all sports differently. Again, these models are not good according to the AOC and McFadden values, so our results cannot be interpreted as strong conclusions.
+
+
+```{r Weightlifting Regression, include=FALSE}
+# change aWinner back to 'winner'for regressions
+summer_w_NAs$Medal <- as.character(summer_w_NAs$Medal)
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'aWinner'] <- 'Winner'
+# make sure Medal is as factor
+summer_w_NAs$Medal = as.factor(summer_w_NAs$Medal)
+
+# subset just gymnasts from 'winner'
+weightlift.w = summer_w_NAs[summer_w_NAs$Sport == 'Weightlifting',]
+
+# separate males and females
+weight_f.w = weightlift.w[weightlift.w$Sex =='F',]
+weight_m.w = weightlift.w[weightlift.w$Sex =='M',]
+
+
+# Logistic Regression Female Weightlifters
+
+weight_glm.f = glm(Medal~Age+Height+Weight, data=weight_f.w, family = "binomial")
+summary(weight_glm.f)
+
+# vif F-Gymnast
+library(faraway)
+vif(weight_glm.f)
+
+# testing the model
+# ROC
+loadPkg("pROC")
+prob_f_weight = predict(weight_glm.f, type = c("response"))
+#weight_f.w$prob_f_weight=prob_f_weight
+#h.wf <- roc(Medal~prob_f_weight, data=weight_f.w)
+#auc(h.wf) # area-under-curve prefer 0.8 or higher.
+
+# McFadden
+loadPkg("pscl")
+Logitpr2_weight_f = pR2(weight_glm.f)
+Logitpr2_weight_f
+
+
+
+# Logistic Regression Male weightlifters
+weight_glm_m = glm(Medal~Age+Height+Weight, data=weight_m.w, family = "binomial")
+summary(weight_glm_m)
+
+# vif M-weightnast
+vif(weight_glm_m)
+
+
+# testing the model
+# ROC
+prob_m_weight = predict(weight_glm_m, type = c("response"))
+#weight_m.w$prob_m_weight=prob_m_weight
+#h.wm <- roc(Medal~prob_m_weight, data=weight_m.w)
+#auc(h.wm) # area-under-curve prefer 0.8 or higher.
+
+# McFadden
+Logitpr2_weight_m = pR2(weight_glm_m)
+Logitpr2_weight_m
+
+library(stargazer)
+stargazer(weight_glm.f, weight_glm_m, out='ahw_weight.htm')
+```
+
+
+### SMART QUESTION III 
+#### 4.3 Does GDP determine winning/losing? Does it affect number of participants? Number of male/female participants?  
+
+```{r setting_wd}
+setwd('C:/Users/andre/Desktop/GW Classes/Introduction to Data Science')
+```
+
+```{r init}
+loadPkg('readxl')
+#loading the datasets
+gdp <- read_excel("GDP Super Cool.xlsm")
+#athlete_events <- data.frame(read.csv("athlete_events.csv"))
+NOC <- data.frame(read.csv("noc_regions.csv"))
+```
+
+```{r cleaning_data}
+# keeping NAs for analysis of winners and losers
+summer_w_NAs = athlete_events[athlete_events$Season=='Summer',]
+
+# differenciate between winners and losers
+# THIS IS VERY IMPORTANT PART OF THE CODE
+summer_w_NAs <- subset(athlete_events, Season == 'Summer')
+summer_w_NAs$Medal <- as.character(summer_w_NAs$Medal)
+summer_w_NAs$Medal[is.na(summer_w_NAs$Medal)] <- "Loser"
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Bronze'] <- 'Winner'
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Silver'] <- 'Winner'
+summer_w_NAs$Medal[summer_w_NAs$Medal == 'Gold'] <- 'Winner'
+```
+
+```{r merging_dataframe_with_NOC}
+#merging the NOc dataset with Summer_w_NAs by NOC
+SummerNOC = merge(summer_w_NAs, NOC, by=c("NOC"))
+str(SummerNOC)
+```
+
+```{r missing_values}
+#identifying the missing values for the region column
+sum(is.na(SummerNOC$region))
+regionNA <- SummerNOC[is.na(SummerNOC$region),]
+regionNA
+```
+
+```{r deleting_NAs}
+#decided to delete the NAs in the region column as they are not relevant for the analysis
+SummerNOC <- SummerNOC[!is.na(SummerNOC$region), ]
+SummerNOC <- SummerNOC[ , -8]
+SummerNOC <- SummerNOC[ , -16]
+#renaming the region column to Country
+colnames(SummerNOC)[which(names(SummerNOC) == "region")] <- "Country"
+```
+
+```{r renaming_countries}
+#renaming some of the countries in the gdp dataset as they have a different name in the SummerNOC dataset. This will allow us to create a more accurate dataframe when we merge gdp and SummerNOC
+gdp$Country[gdp$Country == 'Egypt, Arab Rep.'] <- 'Egypt'
+gdp$Country[gdp$Country == 'Bahamas, The'] <- 'Bahamas'
+gdp$Country[gdp$Country == 'Iran, Islamic Rep.'] <- 'Iran'
+gdp$Country[gdp$Country == "Cote d'Ivoire"] <- 'Ivory Coast'
+gdp$Country[gdp$Country == 'Kyrgyz Republic'] <- 'Kyrgyzstan'
+gdp$Country[gdp$Country == 'North Macedonia'] <- 'Macedonia'
+gdp$Country[gdp$Country == "Korea, Dem. People's Rep."] <- 'North Korea'
+gdp$Country[gdp$Country == 'Russian Federation'] <- 'Russia'
+gdp$Country[gdp$Country == 'Slovak Republic'] <- 'Slovakia'
+gdp$Country[gdp$Country == 'Korea, Rep.'] <- 'South Korea'
+gdp$Country[gdp$Country == 'Syrian Arab Republic'] <- 'Syria'
+gdp$Country[gdp$Country == 'Trinidad and Tobago'] <- 'Trinidad'
+gdp$Country[gdp$Country == 'United Kingdom'] <- 'UK'
+gdp$Country[gdp$Country == 'United States'] <- 'USA'
+gdp$Country[gdp$Country == 'Venezuela, RB'] <- 'Venezuela'
+gdp$Country[gdp$Country == 'Virgin Islands (U.S.)'] <- 'Virgin Islands, US'
+```
+
+```{r new_dataset}
+#creating a new data frame SummerGDP by merging SummerNOC and gdp by Year and Country
+Summer_GDP = merge(SummerNOC, gdp, by=c("Country", "Year"))
+str(Summer_GDP)
+```
+
+```{r new_dataset_1}
+#scaling GDP, converting Medal to factor, and removing NAs
+Summer_GDP$GDP <- scale(Summer_GDP$GDP)
+Summer_GDP$Medal <- as.factor(Summer_GDP$Medal)
+sum(is.na(Summer_GDP))
+Summer_GDP_nona <- na.omit(Summer_GDP)
+```
+
+```{r new_dataset_2}
+#displaying the number of rows of the new data frame withou NA
+nrow(Summer_GDP_nona)
+```
+
+```{r graph1}
+#creating a bix plot that displays Winner/Losers and GDP
+plot(GDP ~ Medal, data = Summer_GDP_nona, main = "GDP for Losers and Winners", xlab = "Loser/Winner", ylab = "GDP", col = c("darkblue", "antiquewhite"))
+```
+
+```{r Anova1}
+#Performing ANOVA test on GDP and Medal
+GDP_aov <- aov(GDP ~ Medal, data = Summer_GDP_nona)
+names(GDP_aov)
+summary(GDP_aov)
+```
+
+The null hypothesis of this test is the following: the people who won a medal and people who did not win a medal have the same mean for GDP. 
+
+From the ANOVA test we got a really tiny p-value which is way smaller than our confidence level 0.05 and therefore we reject the null hypothesis and conclude that GDP has an effect on whether an athlete earns a medal. As we can see visually from the boxplot, athletes who won a medal tend to come from countries with higher GDP.  
+
+
+```{r logistic_regression}
+#performing Logistic regression on GDP and Medal
+GDPLogit <- glm(Medal ~ GDP, data = Summer_GDP_nona, family = "binomial")
+summary(GDPLogit)
+```
+
+To evaluate whether our model is good, we are going to perform the following tests: 
+
+* Receiver-Operator-Characteristic curve and Area-Under-Curve:
+```{r ROC, include = TRUE, echo= FALSE}
+loadPkg("pROC")
+prob = predict(GDPLogit, type = c("response"))
+Summer_GDP_nona$prob=prob
+g <- roc(Medal~prob, data= Summer_GDP_nona)
+auc(g)
+plot(g)
+#roc_obj <- roc(data2$Medal, data2$GDP)
+##auc(roc_obj)
+#plot(roc_obj)
+```
+
+The area-under-curve for this model is `r auc(g)`, which is less than 0.8. Althought `r auc(g)` is not much smaller than 0.8, this means that this model is not a good fit.
+
+* McFadden:
+
+```{r McFadden}
+loadPkg("pscl")
+GDPLogitpr2 = pR2(GDPLogit)
+GDPLogitpr2
+```
+
+With the McFadden value of `r format(GDPLogit['McFadden'], 4)` only 2% of the variation in y is explained by the explanatory variables in the model, which is not good.
+
+```{r logistic_regression2}
+#running logistic regression with more variables to see whether it improves the model
+GDPLogit1 <- glm(Medal ~ GDP+Height+Weight+ Age, data = Summer_GDP_nona, family = "binomial")
+summary(GDPLogit1)
+```
+
+To evaluate whether our model is good, we are going to perform the following tests: 
+
+* Receiver-Operator-Characteristic curve and Area-Under-Curve:
+```{r ROC1, include = TRUE, echo= FALSE}
+prob1 = predict(GDPLogit1, type = c("response"))
+Summer_GDP_nona$prob1=prob1
+h <- roc(Medal~prob1, data= Summer_GDP_nona)
+auc(h)
+plot(h)
+```
+
+The area-under-curve for this model is `r auc(h)`, which is less than 0.8. Althought `r auc(h)` is not much smaller than 0.8, this means that this model is not a good fit.
+
+* McFadden:
+
+```{r McFadden1}
+loadPkg("pscl")
+GDPLogitpr2_1 = pR2(GDPLogit1)
+GDPLogitpr2_1
+```
+
+In this case, we got a McFadden value of `r format(GDPLogit1['McFadden'], 4)`. This means that our model is a good fit. 
+
+* We are aslo going to run the Aikake information criterion to compare the two models and see which one of the two is better. 
+
+```{r Q8c}
+AIC(GDPLogit)
+AIC(GDPLogit1)
+```
+
+We got `r AIC(GDPLogit)` for the first model and `r AIC(GDPLogit1)` for the second model.That means that the second model is better as its value is lower. 
+
+```{r graph2}
+#plotting GDP and Sex in a boxplot
+plot(GDP ~ Sex, data = Summer_GDP_nona, main = "GDP for Men and Women", xlab = "Men/Women", ylab = "GDP", col = c("deeppink1", "dodgerblue1"))
+```
+
+```{r ANOVA2}
+#running ANOVA test for GDP and Sex
+GDP_Sex_aov <- aov(GDP ~ Sex, data = Summer_GDP_nona)
+names(GDP_Sex_aov)
+summary(GDP_Sex_aov)
+```
+
+The null hypothesis of this test is the following: the female athletes and male athletes have the same mean for GDP. 
+
+From the ANOVA test we got a really tiny p-value which is way smaller than our confidence level 0.05 and therefore we reject the null hypothesis and conclude that GDP has an effect on whether female athletes partecipate to the olympics. As we can see visually from the boxplot, female athletes tend to partecipate more often if they come from a country with a higher GDP. 
+
+```{r frequency_table}
+#creating a frequency table with the number of participants for each country over the years
+table1 <- table(Summer_GDP_nona$Country, Summer_GDP_nona$Year)
+table1 <- data.frame(table1) #converting the table into a data frame
+#renaming the columns in table1. The Freq column actually indicates the number of participants for each country each year and therefore it was named Participants
+colnames(table1)[which(names(table1) == "Var1")] <- "Country"
+colnames(table1)[which(names(table1) == "Var2")] <- "Year"
+colnames(table1)[which(names(table1) == "Freq")] <- "Participants"
+```
+
+```{r another_new_dataframe}
+#merging table1 and gdp to create a new data frame SummerGDPFreq 
+SummerGDPFreq = merge(table1, gdp, by=c("Country", "Year"))
+sum(is.na(SummerGDPFreq$GDP))
+SummerGDPFreq <- SummerGDPFreq[!is.na(SummerGDPFreq$GDP), ]
+SummerGDPFreq$GDP <- scale(SummerGDPFreq$GDP)
+str(SummerGDPFreq)
+```
+
+```{r correlation_table}
+GDPFreqcor <- cor(SummerGDPFreq[3:4])
+GDPFreqcor
+```
+
+```{r corrplot}
+loadPkg("corrplot")
+corrplot(GDPFreqcor)
+corrplot(GDPFreqcor, method = "number")
+```
+
+```{r lm1}
+model1 <- lm(Participants ~ GDP, data = SummerGDPFreq)
+summary(model1)
+slope <- coef(model1)
+slope
+```
+
+After we ran our linear regression model, we got an intercept of `r format(coef(model1)[1])` and a slope of `r format(coef(model1)[2])`. This means that for an increase of one point for the scaled GDP, which is worth billions of dollars, we expect an increase of more than 72 participants in total on average. Additionally, we got a really tiny p-value for the slope. Therefore, we reject the null hypotheisis, which is that the intercept and the slope is equal to 0, and we say that our slope is statistically significant. 
+
+Finally, we got an R-squared value of 0.336. This means that our model accounts for approximately 34% of the variance.
+
+```{r lm1_plotted}
+plot(model1)
+loadPkg("ggplot2")
+ggplot(model1,aes(GDP,Participants))+geom_point(aes(GDP,Participants)) + geom_line(aes(Participants), colour="red", size=1)
+```
+
+```{r starting_KNN}
+loadPkg("FNN")
+head(summer_w_NAs)
+#first we want to scale the data so KNN will operate correctly
+scaledoly1 <- as.data.frame(scale(Summer_GDP_nona[c(7:9, 16)], center = TRUE, scale = TRUE))
+```
+ 
+```{r setting_sample}
+set.seed(1)
+oly_sample1 <- sample(2, nrow(scaledoly1), replace=TRUE, prob=c(0.67, 0.33))
+oly_sample1
+scaledoly1
+```
+
+```{r creating_training_and_test}
+oly_training1 <- scaledoly1[oly_sample1==1, 1:3]
+oly_test1 <- scaledoly1[oly_sample1==2, 1:3]
+```
+
+```{r creating_YValues}
+#Now we need to create our 'Y' variables or labels need to input into the KNN function
+oly.trainLabels1 <- Summer_GDP_nona[oly_sample1==1, 15]
+oly.testLabels1 <- Summer_GDP_nona[oly_sample1==2, 15]
+```
+
+```{r K3}
+#So now we will deploy our model 
+oly_pred1 <- knn(train = oly_training1, test = oly_test1, cl=oly.trainLabels1, k=3)
+oly_pred1
+```
+
+```{r K3_crosstable, include= TRUE, echo = False}
+loadPkg("gmodels")
+OLYPREDCross1 <- CrossTable(oly.testLabels1, oly_pred1, prop.chisq = FALSE)
+#Looks like we got all but three correct, not bad
+```
+
+```{r K5}
+#So now we will deploy our model 
+oly_pred2 <- knn(train = oly_training1, test = oly_test1, cl=oly.trainLabels1, k=5)
+oly_pred2
+```
+
+```{r K5_crosstable}
+#install.packages("gmodels")
+loadPkg("gmodels")
+OLYPREDCross2 <- CrossTable(oly.testLabels1, oly_pred2, prop.chisq = FALSE)
+#Looks like we got all but three correct, not bad
+```
+
+```{r K7}
+#So now we will deploy our model 
+oly_pred3 <- knn(train = oly_training1, test = oly_test1, cl=oly.trainLabels1, k=7)
+oly_pred3
+```
+
+```{r K7_crosstable}
+OLYPREDCross3 <- CrossTable(oly.testLabels1, oly_pred3, prop.chisq = FALSE)
+#Looks like we got all but three correct, not bad
+```
+
+```{r acc1}
+kNN_acc1 =  100 * sum(oly.testLabels1 == oly_pred1)/NROW(oly.testLabels1)
+kNN_acc1
+```
+
+```{r acc2}
+kNN_acc2 =  100 * sum(oly.testLabels1 == oly_pred2)/NROW(oly.testLabels1)
+kNN_acc2
+```
+
+```{r acc3}
+kNN_acc3 =  100 * sum(oly.testLabels1 == oly_pred3)/NROW(oly.testLabels1)
+kNN_acc3
+```
+
+
+
+# Bibliography
+
+Griffin, R. (2019). 120 years of Olympic history: athletes and results. [online] Kaggle.com. Available at: https://www.kaggle.com/heesoo37/120-years-of-olympic-history-athletes-and-results [Accessed May 2018].
