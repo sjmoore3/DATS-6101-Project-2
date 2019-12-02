@@ -518,7 +518,7 @@ win.lose = c('Won a medal', "Did not win a medal")
 # Females
 # t-test
 t.age.F = t.test(F.Winner$Age, F.Loser$Age, alternative = "two.sided", var.equal = FALSE)
-t.age.F
+#t.age.F
 # aggregate means of age for females
 means.af <- aggregate(Age ~ Medal, summer_F, mean)
 means.af$Age = round(means.af$Age, 3)
@@ -534,7 +534,7 @@ ggplot(data=summer_F, aes(x= Medal, y=Age, fill=Medal)) +
 
 # Males
 t.age.M = t.test(M.Winner$Age, M.Loser$Age, alternative = "two.sided", var.equal = FALSE)
-t.age.M
+#t.age.M
 means.am <- aggregate(Age ~ Medal, summer_M, mean)
 means.am$Age = round(means.am$Age, 3)
 # boxplot
@@ -553,7 +553,7 @@ ggplot(data=summer_M, aes(x= Medal, y=Age, fill=Medal))+
 # HEIGHT
 # Females
 t.height.F = t.test(F.Winner$Height, F.Loser$Height, alternative = "two.sided", var.equal = FALSE)
-t.height.F
+#t.height.F
 # aggregate means of Height
 means.hf <- aggregate(Height ~ Medal, summer_F, mean)
 means.hf$Height = round(means.hf$Height, 2)
@@ -569,7 +569,7 @@ ggplot(data=summer_F, aes(x= Medal, y=Height, fill=Medal)) +
 
 # Males
 t.height.M = t.test(M.Winner$Height, M.Loser$Height, alternative = "two.sided", var.equal = FALSE)
-t.height.M
+#t.height.M
 # aggregate means of Height
 means.hm <- aggregate(Height ~ Medal, summer_M, mean)
 means.hm$Height = round(means.hm$Height, 2)
@@ -589,7 +589,7 @@ ggplot(data=summer_M, aes(x= Medal, y=Height, fill=Medal)) +
 # WEIGHT
 # Females
 t.weight.F = t.test(F.Winner$Weight, F.Loser$Weight, alternative = "two.sided", var.equal = FALSE)
-t.weight.F
+#t.weight.F
 # aggregate means of Weight
 means.wf <- aggregate(Weight ~ Medal, summer_F, mean)
 means.wf$Weight = round(means.wf$Weight, 2)
@@ -604,7 +604,7 @@ ggplot(data=summer_F, aes(x= Medal, y=Weight, fill=Medal)) + geom_boxplot() +
 
 # Males
 t.weight.M = t.test(M.Winner$Weight, M.Loser$Weight, alternative = "two.sided", var.equal = FALSE)
-t.weight.M
+#t.weight.M
 # aggregate means of Weight
 means.wm <- aggregate(Weight ~ Medal, summer_M, mean)
 means.wm$Weight = round(means.wm$Weight, 2)
@@ -849,7 +849,7 @@ From these results, we can infer that age plays a bigger factor in women's gymna
 # Females
 # t-test
 gym.t.age.F = t.test(gym_f.win$Age, gym_f.lose$Age, alternative = "two.sided", var.equal = FALSE)
-gym.t.age.F
+#gym.t.age.F
 # aggregate means of age for females
 gym.means.af <- aggregate(Age ~ Medal, gym_f, mean)
 gym.means.af$Age = round(gym.means.af$Age, 2)
@@ -871,7 +871,7 @@ mean(no_gym_F$Age)
 # Males
 # t-test
 gym.t.age.M = t.test(gym_m.win$Age, gym_m.lose$Age, alternative = "two.sided", var.equal = FALSE)
-gym.t.age.M
+#gym.t.age.M
 # aggregate means of age for females
 gym.means.am <- aggregate(Age ~ Medal, gym_m, mean)
 gym.means.am$Age = round(gym.means.am$Age, 2)
@@ -903,7 +903,7 @@ From these results, we can infer that height plays a significant role in both me
 ```{r Gymnastics Height, echo=FALSE}
 # Females
 gym.t.height.F = t.test(gym_f.win$Height, gym_f.lose$Height, alternative = "two.sided", var.equal = FALSE)
-gym.t.height.F
+#gym.t.height.F
 # aggregate means of Height
 gym.means.hf <- aggregate(Height ~ Medal, gym_f, mean)
 gym.means.hf$Height = round(gym.means.hf$Height, 2)
@@ -923,7 +923,7 @@ mean(no_gym_F$Height)
 
 # Males
 gym.t.height.M = t.test(gym_m.win$Height, gym_m.lose$Height, alternative = "two.sided", var.equal = FALSE)
-gym.t.height.M
+#gym.t.height.M
 # aggregate means of Height
 gym.means.hm <- aggregate(Height ~ Medal, gym_m, mean)
 gym.means.hm$Height = round(gym.means.hm$Height, 2)
@@ -950,7 +950,7 @@ The results and interpretation of discussed above for height are very similar to
 ```{r Gymnast Weight, echo=FALSE}
 # Females
 gym.t.weight.F = t.test(gym_f.win$Weight, gym_f.lose$Weight, alternative = "two.sided", var.equal = FALSE)
-gym.t.weight.F
+#gym.t.weight.F
 # aggregate means of Weight
 gym.means.wf <- aggregate(Weight ~ Medal, gym_f, mean)
 gym.means.wf$Weight = round(gym.means.wf$Weight, 2)
@@ -971,7 +971,7 @@ mean(no_gym_F$Weight)
 
 # Males
 gym.t.weight.M = t.test(gym_m.win$Weight, gym_m.lose$Weight, alternative = "two.sided", var.equal = FALSE)
-gym.t.weight.M
+#gym.t.weight.M
 # aggregate means of Weight
 gym.means.wm <- aggregate(Weight ~ Medal, gym_m, mean)
 gym.means.wm$Weight = round(gym.means.wm$Weight, 2)
@@ -1134,7 +1134,7 @@ ggplot(new_w, aes(x=Weight, y=Height,, color=Sport)) +
 
 In a similar fashion to our other case study and previous analysis of all athletes, we have performed t-tests to evaluate the difference between weightlifting olympic medalists and non-medalists age, height, and weight. Our results reveal that the average age, height, and weight of female weightlifting medalists does not significantly differ from that of non-medalists. Males have similar results, however the male weightlifting medalists have a significant p-value, thus significantly different mean for Weight compared to non-medalists. Male weightlifting medalists are on average 82.91kg, while non-medalists average 79.77kg. So, it may be beneficial for male weightlifters to be heavier if they want to win a medal. 
 
-```{r Weightlifting t-test, include=FALSE}
+```{r Weightlifting t-test, echo = FALSE, include=FALSE}
 # AGE: 
 # Females
 weight.t.age.F = t.test(weight_f.win$Age, weight_f.lose$Age, alternative = "two.sided", var.equal = FALSE)
